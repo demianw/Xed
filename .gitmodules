@@ -1,0 +1,3 @@
+[submodule "datascience_starter_course"]
+	path = datascience_starter_course
+	url = https://github.com/glemaitre/datascience_starter_course.git
