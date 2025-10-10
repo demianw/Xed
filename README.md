@@ -7,3 +7,5 @@ The notebook about [Regression is here](https://colab.research.google.com/github
 The notebook about [Classification is here](https://colab.research.google.com/github/demianw/Xed/blob/main/titanic_survival_prediction/notebook_titanic_survival_prediction.ipynb)
 
 The notebook about [Dimensionality reduction is here](https://colab.research.google.com/github/demianw/Xed/blob/main/ames_datasets/notebook_ames_datasets_reduction.ipynb)
+
+The notebook to [check hypothesis on Titanic is here](https://colab.research.google.com/github/demianw/Xed/blob/main/titanic_survival_prediction/notebook_titanic_survival_prediction_check_hypothesis.ipynb)
