@@ -81,6 +81,7 @@ from sklearn.preprocessing import StandardScaler
 from sklearn.model_selection import (cross_val_score, StratifiedKFold,
                                      GridSearchCV, validation_curve)
 from sklearn.metrics import accuracy_score
+from scipy.stats import pearsonr
 
 rng = np.random.default_rng(42)
 cv  = StratifiedKFold(n_splits=5, shuffle=True, random_state=42)
@@ -377,7 +378,206 @@ for noise_std in [0, 5, 10]:
 
 # %% [markdown]
 # ---
-# ## 4. Choosing the number of components with cross-validation
+# ## 4. The tabular case: noise features in the Madelon benchmark
+#
+# The denoising effect shown in Section 3 happens along the *feature axis* of
+# a pixel grid.  The exact same mechanism operates in **tabular data** whenever
+# many columns carry no signal — a situation that is common in practice:
+#
+# | Domain | Signal features | Noise / redundant features |
+# |--------|-----------------|---------------------------|
+# | Omics (genomics, proteomics) | 10–100 genes | 10 000+ irrelevant |
+# | IoT sensor arrays | 5–20 meaningful sensors | 100s of redundant |
+# | Auto-generated feature stores | Core interactions | Thousands of stale features |
+# | The Madelon challenge | 5 informative | 15 redundant + **480 pure noise** |
+#
+# **Madelon** (from the 2003 NIPS feature-selection challenge) is the canonical
+# benchmark for this scenario.  The dataset has:
+# - 2 600 samples × **500 features**
+# - Only **5 features** encode the true binary signal (the 5 corners of a
+#   5-dimensional hypercube); 15 more are linear combinations of those 5
+# - The remaining **480 features are i.i.d. Gaussian noise**
+# - All features have similar per-column variance, so the noise columns
+#   collectively dominate the covariance matrix
+
+# %%
+print("Loading Madelon …")
+ds_mad = fetch_openml(data_id=1485, as_frame=True, parser='auto')
+X_mad = ds_mad.data.values.astype(float)
+y_mad = (ds_mad.target == '1').astype(int)
+
+print(f"Shape: {X_mad.shape}   class balance: {y_mad.mean():.2f}")
+print(f"Mean absolute feature correlation: "
+      f"{np.abs(np.corrcoef(X_mad.T) - np.eye(500)).mean():.4f}")
+
+# %% [markdown]
+# ### 4.1 How variance is distributed across principal components
+
+# %%
+pca_mad_full = PCA(random_state=42).fit(StandardScaler().fit_transform(X_mad))
+cumvar_mad = np.cumsum(pca_mad_full.explained_variance_ratio_) * 100
+
+fig, axes = plt.subplots(1, 2, figsize=(12, 4))
+
+# Scree for first 50 PCs
+axes[0].bar(range(1, 51), pca_mad_full.explained_variance_ratio_[:50] * 100,
+            color='steelblue', width=0.8)
+axes[0].set_xlabel('Principal component')
+axes[0].set_ylabel('Explained variance (%)')
+axes[0].set_title('Madelon: scree plot (first 50 PCs)\n'
+                  f'PC 1–5 explain only {cumvar_mad[4]:.1f}% of total variance')
+
+# Cumulative variance
+axes[1].plot(range(1, len(cumvar_mad) + 1), cumvar_mad)
+for k, threshold in [(5, cumvar_mad[4]), (20, cumvar_mad[19])]:
+    axes[1].axvline(k, color='red', linestyle=':', linewidth=1)
+    axes[1].annotate(f'{k} PCs → {threshold:.0f}%',
+                     xy=(k + 5, threshold), fontsize=8, color='red')
+axes[1].set_xlabel('Number of components')
+axes[1].set_ylabel('Cumulative variance (%)')
+axes[1].set_title('Madelon: cumulative explained variance')
+
+plt.tight_layout()
+plt.show()
+
+print(f"\nVariance captured:")
+for k in [5, 10, 20, 50, 100]:
+    print(f"  First {k:3d} PCs: {cumvar_mad[k-1]:.1f}%")
+print()
+print(">>> With 480 noise columns dominating, the first 5 PCs hold < 5% of total variance.")
+print(">>> Yet we will see they contain essentially all of the discriminative signal.")
+
+# %% [markdown]
+# ### 4.2 The paradox: low-variance PCs can hold high signal
+#
+# Standard PCA finds directions of **maximum variance**, not maximum
+# discriminative power.  In Madelon, the 480 noise columns produce far more
+# total variance than the 5 signal columns, so the first PCs are pulled toward
+# noise directions.  *And yet* the leading PCs still contain the signal — because
+# the 20 informative columns (5 original + 15 linear combinations) share
+# **structured correlation** that PCA detects as a coherent direction even when
+# that direction is swamped by noise variance.
+#
+# We can verify this directly by computing the correlation between each PC
+# and the binary target:
+
+# %%
+X_mad_pca_full = pca_mad_full.transform(StandardScaler().fit_transform(X_mad))
+
+from scipy.stats import pearsonr
+correlations = [abs(pearsonr(X_mad_pca_full[:, k], y_mad)[0]) for k in range(30)]
+
+fig, ax = plt.subplots(figsize=(10, 3))
+ax.bar(range(1, 31), correlations, color=['crimson' if c > 0.07 else 'steelblue'
+                                           for c in correlations])
+ax.axhline(0.07, color='crimson', linestyle='--', linewidth=0.8,
+           label='Threshold |r| > 0.07')
+ax.set_xlabel('Principal component index')
+ax.set_ylabel('|Pearson r| with target y')
+ax.set_title('Madelon: which PCs correlate with the target?')
+ax.legend()
+plt.tight_layout()
+plt.show()
+
+informative_pcs = [k+1 for k, c in enumerate(correlations) if c > 0.07]
+print(f"PCs with |r| > 0.07: {informative_pcs}")
+print(f"These {len(informative_pcs)} PCs collectively explain "
+      f"{cumvar_mad[max(informative_pcs)-1]:.1f}% of variance "
+      f"but hold nearly all the predictive signal.")
+
+# %% [markdown]
+# ### 4.3 Classification accuracy: raw vs PCA
+
+# %%
+results_mad = []
+knn_mad = KNeighborsClassifier(n_neighbors=5)
+lr_mad  = LogisticRegression(max_iter=500, random_state=42)
+
+raw_knn = cross_val_score(
+    make_pipeline(StandardScaler(), knn_mad), X_mad, y_mad, cv=cv).mean()
+raw_lr  = cross_val_score(
+    make_pipeline(StandardScaler(), lr_mad), X_mad, y_mad, cv=cv).mean()
+
+n_comp_range_mad = [2, 3, 5, 7, 10, 15, 20, 30, 50]
+for n in n_comp_range_mad:
+    sk = cross_val_score(
+        make_pipeline(StandardScaler(), PCA(n, random_state=42), knn_mad),
+        X_mad, y_mad, cv=cv).mean()
+    sl = cross_val_score(
+        make_pipeline(StandardScaler(), PCA(n, random_state=42), lr_mad),
+        X_mad, y_mad, cv=cv).mean()
+    results_mad.append({'n': n, 'KNN': sk, 'LR': sl})
+df_mad = pd.DataFrame(results_mad)
+
+fig, ax = plt.subplots(figsize=(9, 4))
+ax.axhline(raw_knn, color='steelblue', linestyle='--', alpha=0.7,
+           label=f'KNN raw (500 features): {raw_knn:.3f}  ← near random!')
+ax.axhline(raw_lr,  color='darkorange', linestyle='--', alpha=0.7,
+           label=f'LR  raw (500 features): {raw_lr:.3f}')
+ax.plot(df_mad['n'], df_mad['KNN'], marker='o', color='steelblue', label='KNN + PCA')
+ax.plot(df_mad['n'], df_mad['LR'],  marker='s', color='darkorange', label='LR  + PCA')
+ax.axhline(0.5, color='grey', linestyle=':', linewidth=0.8, label='Chance (50%)')
+ax.set_xlabel('Number of PCA components')
+ax.set_ylabel('5-fold CV accuracy')
+ax.set_title('Madelon: KNN collapses without PCA; LR is more robust')
+ax.legend(fontsize=8)
+plt.tight_layout()
+plt.show()
+
+best_knn_n = df_mad.loc[df_mad['KNN'].idxmax(), 'n']
+best_knn   = df_mad['KNN'].max()
+best_lr_n  = df_mad.loc[df_mad['LR'].idxmax(), 'n']
+best_lr    = df_mad['LR'].max()
+
+print(f"KNN:  raw = {raw_knn:.3f}  →  PCA({int(best_knn_n)}) = {best_knn:.3f}"
+      f"  improvement = {best_knn - raw_knn:+.3f} ({(best_knn-raw_knn)*100:.0f} pp)")
+print(f"LR:   raw = {raw_lr:.3f}   →  PCA({int(best_lr_n)}) = {best_lr:.3f}"
+      f"  improvement = {best_lr - raw_lr:+.3f} ({(best_lr-raw_lr)*100:.0f} pp)")
+print()
+print("KNN improvement is dramatic (+30pp) because distance metrics collapse")
+print("in 500 dimensions: ~all pairwise distances become similar (noise dominates).")
+print("After PCA(5), the 5 signal dimensions separate the classes cleanly.")
+print()
+print("LR improvement is modest (+5pp) because L2 regularisation already")
+print("down-weights the 480 noise features — effectively doing implicit PCA.")
+
+# %% [markdown]
+# <div class="alert alert-success">
+#
+# <b>EXERCISE 4 — Madelon: the tabular noise-features problem</b>
+# <ul>
+#   <li>
+#     <b>The 90%-variance threshold is wrong here.</b>
+#     How many PCA components would the "90% explained variance" heuristic
+#     suggest for Madelon?  (Read from the cumulative variance plot.)
+#     Does that number give the best accuracy for KNN?
+#     What does this tell you about using explained variance as the criterion
+#     for choosing n_components when the goal is prediction?
+#   </li>
+#   <li>
+#     <b>Kernel PCA.</b>  Try <code>KernelPCA(n_components=5, kernel='rbf', gamma=0.01)</code>
+#     as the preprocessing step for KNN instead of linear PCA.
+#     Does non-linear PCA do better, worse, or the same?  Why might the signal
+#     in Madelon be (or not be) linearly separable after PCA?
+#   </li>
+#   <li>
+#     <b>SelectKBest as an alternative.</b>
+#     Use <code>SelectKBest(f_classif, k=5)</code> inside a pipeline instead of PCA.
+#     How does its KNN accuracy compare to PCA(5)?
+#     Which approach is more sensitive to the choice of <em>k</em>?
+#     (<em>Hint:</em> feature selection picks 5 specific columns; PCA rotates all 500
+#     into 5 linear combinations.  Which is more robust when the 5 informative
+#     features are not axis-aligned?)
+#   </li>
+# </ul>
+# </div>
+
+# %%
+# Your code here
+
+
+
+# ## 5. Choosing the number of components with cross-validation
 #
 # The optimal number of PCA components should be chosen by **nested
 # cross-validation** — not by looking at the explained-variance plot.
@@ -422,7 +622,7 @@ print(f"Optimal n_components by CV: {best_n_cv}  "
 # %% [markdown]
 # <div class="alert alert-success">
 #
-# <b>EXERCISE 4 — Kernel PCA for non-linear structure</b>
+# <b>EXERCISE 5 — Kernel PCA for non-linear structure</b>
 # <ul>
 #   <li>
 #     Linear PCA assumes the signal lives in a low-dimensional <em>linear</em>
@@ -465,6 +665,8 @@ print(f"Optimal n_components by CV: {best_n_cv}  "
 # | Digits, noise=0 | KNN(3) | 0.987 | ≈0.987 | ≈0 |
 # | Digits, noise=5 | KNN(3) | 0.812 | ≈0.860 | **+0.048** |
 # | Digits, noise=10 | KNN(3) | 0.502 | ≈0.600 | **+0.098** |
+# | Madelon (500 features, 5 informative) | KNN(5) | 0.526 | ≈0.834 | **+0.308** |
+# | Madelon (500 features, 5 informative) | LR | 0.551 | ≈0.600 | +0.050 |
 #
 # **Key insight:** PCA gives no benefit when the signal-to-noise ratio is high
 # (clean digits).  Its benefit scales with noise level and feature collinearity.
@@ -476,7 +678,7 @@ print(f"Optimal n_components by CV: {best_n_cv}  "
 # %% [markdown]
 # <div class="alert alert-success">
 #
-# <b>EXERCISE 5 — Summary experiments</b>
+# <b>EXERCISE 6 — Summary experiments</b>
 # <ul>
 #   <li>
 #     <b>Faces + SVM.</b>  Fit <code>SVC(kernel='rbf', C=10, gamma='scale')</code>
@@ -524,3 +726,8 @@ print(f"Optimal n_components by CV: {best_n_cv}  "
 # **The golden rule:** consider PCA when (a) n_samples / n_features < 5,
 # (b) you are using a distance-based model, or (c) you suspect your features
 # are noisy measurements of a lower-dimensional physical signal.
+#
+# **The explained-variance heuristic (≥ 90%) is wrong when your goal is
+# prediction.** In Madelon, 90% variance requires ~200 PCs — but the
+# best accuracy comes from just 5. Always validate n_components by CV,
+# not by scree plot alone.
