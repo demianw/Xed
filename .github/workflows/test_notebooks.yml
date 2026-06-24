@@ -95,6 +95,7 @@ jobs:
           #   ames_datasets/notebook_ames_datasets_foundation_models.ipynb  (TabPFN API)
           #   movie lens/notebook_movie_lens.ipynb           (100 MB zip)
           #   data_wrangling/notebook.ipynb                  (215 cells, >10 min)
+          #   insurance_time_series/notebook_insurance_time_series.ipynb (freMTPL2 678k rows)
 
     steps:
       - uses: actions/checkout@v4
