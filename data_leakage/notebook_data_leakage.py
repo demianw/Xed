@@ -20,7 +20,7 @@ if "data_leakage" not in os.getcwd():
     os.chdir("Xed/data_leakage")
 
 # %%
-# %pip install -q scikit-learn==1.9.0 pandas==3.0.3 matplotlib==3.11.0 numpy==2.2.3
+# %pip install -q scikit-learn==1.9.0 pandas==3.0.3 matplotlib==3.11.0 numpy==2.2.3 pooch
 
 # %% [markdown]
 # # Data Leakage through Incorrect Cross-Validation

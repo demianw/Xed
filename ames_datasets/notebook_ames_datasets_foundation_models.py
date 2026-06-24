@@ -12,16 +12,20 @@
 # ---
 
 # %% id="MaYbUovVL1ua" colab={"base_uri": "https://localhost:8080/"} outputId="3432bdb7-dba2-4bc0-8532-efc982141ed9"
-# %pip install -q seaborn==0.13.2 scikit-learn==1.9.0 tabpfn tabicl
+# %pip install -q seaborn==0.13.2 scikit-learn==1.9.0 tabpfn tabicl pooch
 
 # %% id="YMnzmNN3L1ub" colab={"base_uri": "https://localhost:8080/"} outputId="8c643698-e4bd-46f8-f7ac-f51a1c69fe40"
-import os
+import os, sys
 # Skip clone/chdir when running under GitHub Actions (already in the right directory).
 if not os.environ.get('CI'):
     if not os.path.exists('Xed'):
         os.system('git clone --depth=1 https://github.com/demianw/Xed.git')
-if not os.environ.get('CI') and 'ames_datasets' not in os.getcwd():
-    os.chdir('Xed/ames_datasets')
+    if 'ames_datasets' not in os.getcwd():
+        os.chdir('Xed/ames_datasets')
+# Make `xed.datasets` importable from any subdirectory.
+_repo_root = os.path.abspath('..')
+if _repo_root not in sys.path:
+    sys.path.insert(0, _repo_root)
 
 # %% [markdown] id="3m0k94R4L1ub"
 # # Exploring Real Estate Sales Prices — Foundation Models
@@ -54,7 +58,7 @@ import matplotlib.pyplot as plt
 # The dataset is described in https://www.kaggle.com/datasets/prevek18/ames-housing-dataset
 
 # %% id="bAN_fZy5L1uc" outputId="75f7abf0-f9c9-4c74-ea9c-ee3424d1691d" colab={"base_uri": "https://localhost:8080/", "height": 266}
-data = pd.read_csv('../datasets/ames_housing.csv')
+data = load_ames_housing()
 data.head()
 
 # %% [markdown] id="vKc38RPAL1uc"

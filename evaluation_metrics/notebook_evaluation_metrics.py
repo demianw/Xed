@@ -13,16 +13,20 @@
 # ---
 
 # %%
-# %pip install -q scikit-learn==1.9.0 pandas==3.0.3 matplotlib==3.11.0 seaborn==0.13.2
+# %pip install -q scikit-learn==1.9.0 pandas==3.0.3 matplotlib==3.11.0 seaborn==0.13.2 pooch
 
 # %%
-import os
+import os, sys
 # Skip clone/chdir when running under GitHub Actions (already in the right directory).
 if not os.environ.get('CI'):
     if not os.path.exists('Xed'):
         os.system('git clone --depth=1 https://github.com/demianw/Xed.git')
-if not os.environ.get('CI') and 'evaluation_metrics' not in os.getcwd():
-    os.chdir('Xed/evaluation_metrics')
+    if 'evaluation_metrics' not in os.getcwd():
+        os.chdir('Xed/evaluation_metrics')
+# Make `xed.datasets` importable from any subdirectory.
+_repo_root = os.path.abspath('..')
+if _repo_root not in sys.path:
+    sys.path.insert(0, _repo_root)
 
 # %% [markdown]
 # # Evaluation Metrics: Beyond Accuracy
@@ -72,7 +76,8 @@ rng = np.random.RandomState(42)
 # pipeline identical to the one from the classification notebook.
 
 # %%
-titanic = pd.read_csv('../datasets/titanic.csv', index_col='PassengerId')
+from xed.datasets import load_titanic, load_ames_housing
+titanic = load_titanic()
 
 features = titanic.drop(columns='Survived')
 target   = titanic['Survived']
@@ -420,7 +425,7 @@ print(df_results.round(3).to_string())
 
 # %%
 # Load Ames housing and build a reference Ridge pipeline
-ames = pd.read_csv('../datasets/ames_housing.csv')
+ames = load_ames_housing()
 target_ames   = ames['SalePrice']
 features_ames = ames.drop(columns='SalePrice')
 

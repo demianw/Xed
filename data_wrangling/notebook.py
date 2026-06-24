@@ -13,16 +13,20 @@
 # ---
 
 # %%
-import os
+import os, sys
 # Skip clone/chdir when running under GitHub Actions (already in the right directory).
 if not os.environ.get('CI'):
     if not os.path.exists('Xed'):
         os.system('git clone --depth=1 https://github.com/demianw/Xed.git')
-if not os.environ.get('CI') and 'data_wrangling' not in os.getcwd():
-    os.chdir('Xed/data_wrangling')
+    if 'data_wrangling' not in os.getcwd():
+        os.chdir('Xed/data_wrangling')
+# Make `xed.datasets` importable.
+_repo_root = os.path.abspath('..')
+if _repo_root not in sys.path:
+    sys.path.insert(0, _repo_root)
 
 # %%
-# %pip install -q pandas==3.0.3 matplotlib==3.11.0
+# %pip install -q pandas==3.0.3 pooch matplotlib==3.11.0
 
 # %% [markdown]
 # # Data wrangling
@@ -45,6 +49,15 @@ if not os.environ.get('CI') and 'data_wrangling' not in os.getcwd():
 # %%
 import numpy as np
 import pandas as pd
+
+from xed.datasets import (
+    load_titanic,
+    load_no2,
+    load_french_referendum,
+    load_french_departments,
+    load_french_regions,
+    fetch_french_geojson,
+)
 import matplotlib.pyplot as plt
 
 pd.options.display.max_rows = 8
@@ -218,7 +231,7 @@ type(population)
 import os
 
 # %%
-df = pd.read_csv(os.path.join("data", "titanic.csv"))
+df = load_titanic()
 
 # %%
 df.head()
@@ -229,7 +242,8 @@ df.info()
 # %% [markdown]
 # <div class="alert alert-success">
 #
-# <b>EXERCISE</b>: Read the `data/20000101_20161231-NO2.csv` file into a DataFrame `no2`
+# <b>EXERCISE</b>: Load the Belgian NO₂ air quality dataset into a DataFrame `no2`
+# using <code>load_no2()</code> from <code>xed.datasets</code>.
 # <br><br>
 # Some aspects about the file:
 #  <ul>
@@ -426,7 +440,7 @@ df_countries[~mask_pop_above_60]
 # ### 3.5 Exercise
 
 # %%
-df = pd.read_csv(os.path.join("data","titanic.csv"))
+df = load_titanic()
 df.head()
 
 # %% [markdown]
@@ -596,7 +610,7 @@ for group_name, group_df in df.groupby('key'):
 # We go back to the titanic passengers survival data:
 
 # %% run_control={"frozen": false, "read_only": false}
-df = pd.read_csv("data/titanic.csv")
+df = load_titanic(
 df = df.set_index('Name')
 
 # %% run_control={"frozen": false, "read_only": false}
@@ -719,7 +733,7 @@ pd.concat([countries2, country_economics], axis=1, sort=False)
 # Let's look again at the titanic passenger data, but taking a small subset of it to make the example easier to grasp:
 
 # %%
-df = pd.read_csv("./data/titanic.csv")
+df = load_titanic(
 df = df.loc[:9, ['Survived', 'Pclass', 'Sex', 'Age', 'Fare', 'Embarked']]
 
 # %%
@@ -752,9 +766,7 @@ pd.merge(df, locations, on='Embarked', how='left')
 # ### 8.1 Time series preamble
 
 # %%
-no2 = pd.read_csv('data/20000101_20161231-NO2.csv', sep=';',
-                  skiprows=[1], na_values=['n/d'],
-                  index_col=0, parse_dates=True)
+no2 = load_no2()
 
 # %% [markdown] slideshow={"slide_type": "fragment"}
 # When we ensure the DataFrame has a `DatetimeIndex`, time-series related functionality becomes available:

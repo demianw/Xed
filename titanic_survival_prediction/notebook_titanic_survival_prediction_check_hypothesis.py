@@ -16,16 +16,20 @@
 # # Exploration of the Titanic data set
 
 # %% colab={"base_uri": "https://localhost:8080/"} id="smzP4B7HwQ5k" outputId="46e588e7-d835-4cde-85ec-0a34dd478af9"
-# %pip install -q pandas==3.0.3 seaborn==0.13.2 scikit-learn==1.9.0
+# %pip install -q pandas==3.0.3 seaborn==0.13.2 scikit-learn==1.9.0 pooch
 
 # %% id="QNKUn2b1wQ5l"
-import os
+import os, sys
 # Skip clone/chdir when running under GitHub Actions (already in the right directory).
 if not os.environ.get('CI'):
     if not os.path.exists('Xed'):
         os.system('git clone --depth=1 https://github.com/demianw/Xed.git')
-if not os.environ.get('CI') and 'titanic_survival_prediction' not in os.getcwd():
-    os.chdir('Xed/titanic_survival_prediction')
+    if 'titanic_survival_prediction' not in os.getcwd():
+        os.chdir('Xed/titanic_survival_prediction')
+# Make `xed.datasets` importable from any subdirectory.
+_repo_root = os.path.abspath('..')
+if _repo_root not in sys.path:
+    sys.path.insert(0, _repo_root)
 
 # %% id="SbWLzPLpwQ5l"
 import pandas as pd
@@ -53,7 +57,8 @@ import matplotlib.pyplot as plt
 # Load the titanic using `pandas`. It is located in `datasets/titanic.csv`. Using the function `head()` and `info()`, which issues do you identify which need to be solved before to learn a machine learning model.
 
 # %% id="BUg-__bjwQ5l"
-data = pd.read_csv('../datasets/titanic.csv')
+from xed.datasets import load_titanic
+data = load_titanic()
 
 # %% [markdown] id="yzsFuEecwQ5l"
 # ### Question 2
