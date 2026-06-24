@@ -123,6 +123,17 @@ _REGISTRY: dict[str, tuple[str, str, str]] = {
         "French metropolitan department boundaries (GeoJSON). "
         "Served from the Xed course repository.",
     ),
+    # ------------------------------------------------------------------
+    # US County-level Presidential Election Context (2012 & 2016)
+    # ------------------------------------------------------------------
+    "election-context-2018.csv": (
+        "https://raw.githubusercontent.com/MEDSL/2018-elections-unoffical"
+        "/master/election-context-2018.csv",
+        "9d04bb5bbbb8821692f8dfee2cfa31f91fc933a458af05e52fd0d3b395286513",
+        "Kuriwaki, S., Ansolabehere, S., Dagonel, A., & Yamauchi, S. (2021). "
+        "MIT Election Data and Science Lab. "
+        "https://github.com/MEDSL/2018-elections-unoffical",
+    ),
 }
 
 
@@ -431,6 +442,24 @@ def fetch_french_geojson(
 # ---------------------------------------------------------------------------
 # Convenience summary
 # ---------------------------------------------------------------------------
+
+def load_us_county_elections(verbose: bool = True) -> pd.DataFrame:
+    """
+    Load the MIT MEDSL US county-level election and demographics dataset.
+
+    3 114 US counties × 39 columns: presidential results for 2012 and 2016
+    (raw votes), senate/house/governor results where available, and 15 ACS 2015
+    demographic features (``white_pct``, ``black_pct``, ``hispanic_pct``,
+    ``median_hh_inc``, ``rural_pct``, etc.).
+
+    Cached at ``~/.cache/xed_datasets/election-context-2018.csv``.
+
+    Source: MIT Election Data and Science Lab (MEDSL), Kuriwaki et al. (2021).
+    https://github.com/MEDSL/2018-elections-unoffical
+    """
+    path = _fetch("election-context-2018.csv", verbose=verbose)
+    return pd.read_csv(path)
+
 
 def show_registry() -> None:
     """Print all registered datasets with their sources."""
