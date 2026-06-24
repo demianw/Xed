@@ -67,6 +67,7 @@ if "data_leakage" not in os.getcwd():
 # %%
 import numpy as np
 import pandas as pd
+import pandas as pd
 import matplotlib.pyplot as plt
 from sklearn.preprocessing import StandardScaler
 from sklearn.linear_model import LogisticRegression, Ridge
@@ -83,56 +84,205 @@ rng = np.random.RandomState(42)
 # ---
 # ## 2. Leakage from preprocessing outside the CV loop
 #
-# ### 2.1 A concrete example: scaling before cross-validation
+# Any preprocessing step that has a ``.fit()`` method can introduce leakage
+# when fitted on the whole dataset before cross-validation.
+# The severity of the bias depends entirely on **how much the preprocessing
+# step uses the target variable**.
 #
-# We use the breast-cancer dataset, which has 30 numerical features on very
-# different scales (some in mm, some as raw counts).
+# | Preprocessing step | Leaks target? | Typical bias |
+# |--------------------|---------------|--------------|
+# | `StandardScaler` | No — fits on features only | Near-zero in practice |
+# | `SimpleImputer(strategy='mean')` | No | Near-zero |
+# | Mean encoding (group-mean of target) | **Yes — directly** | Large, clearly visible |
+# | `SelectKBest(f_classif)` | **Yes — uses labels** | Catastrophic (Section 3) |
+#
+# ### 2.1 Why StandardScaler leakage is nearly invisible
+#
+# `StandardScaler` leakage is theoretically real: the test fold's feature values
+# shift the global mean and variance slightly compared to the training-fold-only values.
+# In practice on a moderate dataset this shift is **~0.0001%** — far too small to
+# change any prediction.
 
 # %%
-X, y = load_breast_cancer(return_X_y=True)
-print(f"Dataset: {X.shape[0]} samples, {X.shape[1]} features, "
-      f"{y.mean()*100:.1f}% positive class")
-print(f"Feature ranges (min/max of column-wise min/max):")
-print(f"  smallest feature range: {X.min(axis=0).min():.4f} – {X.max(axis=0).max():.4f}")
+from sklearn.datasets import load_breast_cancer
+from sklearn.preprocessing import StandardScaler
+from sklearn.linear_model import LogisticRegression
+from sklearn.model_selection import StratifiedKFold, cross_val_score
+from sklearn.pipeline import make_pipeline
 
-# %% [markdown]
-# #### The wrong way — scale *before* CV
-
-# %%
+X_bc, y_bc = load_breast_cancer(return_X_y=True)
 cv = StratifiedKFold(n_splits=5, shuffle=True, random_state=42)
-model = LogisticRegression(max_iter=10_000, random_state=42)
+model_lr = LogisticRegression(max_iter=10_000, random_state=42)
 
-# ── WRONG: scaler sees ALL data including every test fold ──────────────────
+# ── WRONG ──────────────────────────────────────────────────────────────────────
 scaler_global = StandardScaler()
-X_scaled_global = scaler_global.fit_transform(X)          # leakage here
+X_scaled_global = scaler_global.fit_transform(X_bc)   # test fold shifts the mean
+scores_wrong_scaler = cross_val_score(model_lr, X_scaled_global, y_bc,
+                                      cv=cv, scoring='accuracy')
 
-scores_wrong = cross_val_score(model, X_scaled_global, y, cv=cv, scoring="accuracy")
-print(f"Wrong (global scaling) — mean accuracy: {scores_wrong.mean():.4f}  "
-      f"± {scores_wrong.std():.4f}")
+# ── CORRECT ────────────────────────────────────────────────────────────────────
+pipe_scaler = make_pipeline(
+    StandardScaler(),
+    LogisticRegression(max_iter=10_000, random_state=42),
+)
+scores_correct_scaler = cross_val_score(pipe_scaler, X_bc, y_bc,
+                                        cv=cv, scoring='accuracy')
+
+print("StandardScaler leakage on breast-cancer (569 samples, 5 folds)")
+print(f"  Wrong (global scaling) : {scores_wrong_scaler.mean():.4f}")
+print(f"  Correct (pipeline)     : {scores_correct_scaler.mean():.4f}")
+print(f"  Difference             : {scores_wrong_scaler.mean()-scores_correct_scaler.mean():+.4f}")
+print()
+print("  The scaler statistics shift by only ~0.0001% when excluding a 20%-fold.")
+print("  Always use Pipeline anyway: the cost is zero, and correctness is a principle.")
 
 # %% [markdown]
-# #### The correct way — scale *inside* the pipeline
-
-# %%
-# ── CORRECT: scaler is re-fitted on each training fold only ───────────────
-pipe = make_pipeline(StandardScaler(), LogisticRegression(max_iter=10_000, random_state=42))
-
-scores_correct = cross_val_score(pipe, X, y, cv=cv, scoring="accuracy")
-print(f"Correct (pipeline) — mean accuracy: {scores_correct.mean():.4f}  "
-      f"± {scores_correct.std():.4f}")
-
-# %% [markdown]
-# ### Question 1
+# ### 2.2 Mean encoding leakage — a common, visible mistake
 #
-# Run the two cells above and compare the mean accuracy values.
-# Is the difference large or small on this dataset?
-# Would the gap be larger or smaller if the training set were much smaller?
-# Try re-running with `n_splits=10` and observe the variances.
+# **Mean encoding** (also called *target encoding*) replaces a categorical feature
+# with the mean of the target variable within that category.  It is popular in
+# insurance because features like *region* or *vehicle brand* have many levels and
+# high predictive power when encoded by average claim rate.
+#
+# When mean encoding is fitted on **all data before CV**, the test fold's target
+# values are used to compute the category means — a direct feed of the answer
+# into the features the model will be scored on.  With many categories and a
+# small dataset, this inflates performance substantially.
+#
+# **Insurance context:**  Imagine computing "mean claim frequency per region"
+# from the whole dataset, then using it as a feature.  The model learns
+# "region R24 has 9.2% frequency" — but that 9.2% was computed partly from
+# the claims in the test set.  In production the model would never have seen
+# those future claims, so the learned statistic is optimistic.
 
 # %%
+import pandas as pd
+
+rng_enc = np.random.default_rng(42)
+
+# Simulate an insurance-style dataset:
+#   500 policyholders, 20 regions, 5 noise features, binary claim outcome.
+n_enc, n_regions = 500, 20
+region_arr  = rng_enc.integers(0, n_regions, n_enc)
+noise_arr   = rng_enc.normal(size=(n_enc, 5))
+region_risk = rng_enc.uniform(0.1, 0.9, n_regions)      # true P(claim) per region
+y_enc       = rng_enc.binomial(1, region_risk[region_arr]).astype(float)
+
+print(f"Dataset: {n_enc} policies, {n_regions} regions, "
+      f"overall claim rate = {y_enc.mean()*100:.1f}%")
+
+# ── WRONG: compute region mean using all rows, including the test fold ──────
+df_enc = pd.DataFrame(noise_arr, columns=[f'noise_{i}' for i in range(5)])
+df_enc['region'] = region_arr
+df_enc['y']      = y_enc
+
+global_region_mean = df_enc.groupby('region')['y'].transform('mean')  # leakage!
+X_wrong_enc = np.column_stack([noise_arr, global_region_mean.values])
+
+cv_enc = KFold(n_splits=5, shuffle=True, random_state=42)
+scores_wrong_enc = cross_val_score(
+    LogisticRegression(max_iter=500, random_state=42),
+    X_wrong_enc, y_enc, cv=cv_enc, scoring='accuracy',
+)
+
+# ── CORRECT: compute region mean only from the training fold ────────────────
+def mean_encode_fold(X_df, y_arr, train_idx, test_idx, cat_col, target_col, n_cats):
+    """Compute target mean per category using training fold only."""
+    X_tr, y_tr = X_df.iloc[train_idx], y_arr[train_idx]
+    X_te        = X_df.iloc[test_idx]
+    fold_means  = y_tr.groupby(X_tr[cat_col]).mean()
+    global_mean = y_tr.mean()   # fallback for unseen categories
+    enc_tr = X_tr[cat_col].map(fold_means).fillna(global_mean).values
+    enc_te = X_te[cat_col].map(fold_means).fillna(global_mean).values
+    noise_cols = [c for c in X_df.columns if c not in (cat_col, target_col)]
+    Xf_tr = np.column_stack([X_tr[noise_cols].values, enc_tr])
+    Xf_te = np.column_stack([X_te[noise_cols].values, enc_te])
+    return Xf_tr, y_tr.values, Xf_te, y_arr[test_idx]
+
+scores_correct_enc = []
+for tr_idx, te_idx in cv_enc.split(df_enc, y_enc):
+    Xf_tr, yf_tr, Xf_te, yf_te = mean_encode_fold(
+        df_enc, pd.Series(y_enc), tr_idx, te_idx,
+        cat_col='region', target_col='y', n_cats=n_regions,
+    )
+    m = LogisticRegression(max_iter=500, random_state=42)
+    m.fit(Xf_tr, yf_tr)
+    scores_correct_enc.append(m.score(Xf_te, yf_te))
+scores_correct_enc = np.array(scores_correct_enc)
+
+print()
+print("Mean encoding leakage on simulated insurance data")
+print(f"  Wrong (global encoding)  : {scores_wrong_enc.mean():.4f} ± {scores_wrong_enc.std():.4f}")
+print(f"  Correct (fold encoding)  : {scores_correct_enc.mean():.4f} ± {scores_correct_enc.std():.4f}")
+print(f"  Leakage bias             : {scores_wrong_enc.mean()-scores_correct_enc.mean():+.4f}")
 
 # %% [markdown]
-# ---
+# ### 2.3 The pure-noise proof
+#
+# The clearest possible demonstration: assign **completely random labels** to the
+# policyholders, so the correct CV accuracy should be ~50%.
+# Global mean encoding still finds "structure" because the category means
+# memorise the (random) test labels — and the model learns from that noise.
+
+# %%
+y_noise_enc = rng_enc.integers(0, 2, n_enc).astype(float)  # completely random labels
+
+global_mean_noise = df_enc.assign(y=y_noise_enc).groupby('region')['y'].transform('mean')
+X_noise_wrong = np.column_stack([noise_arr, global_mean_noise.values])
+scores_noise_wrong = cross_val_score(
+    LogisticRegression(max_iter=500, random_state=42),
+    X_noise_wrong, y_noise_enc, cv=cv_enc, scoring='accuracy',
+)
+
+df_noise = df_enc.copy()
+df_noise['y'] = y_noise_enc
+scores_noise_correct = []
+for tr_idx, te_idx in cv_enc.split(df_noise, y_noise_enc):
+    Xf_tr, yf_tr, Xf_te, yf_te = mean_encode_fold(
+        df_noise, pd.Series(y_noise_enc), tr_idx, te_idx,
+        cat_col='region', target_col='y', n_cats=n_regions,
+    )
+    m = LogisticRegression(max_iter=500, random_state=42)
+    m.fit(Xf_tr, yf_tr)
+    scores_noise_correct.append(m.score(Xf_te, yf_te))
+scores_noise_correct = np.array(scores_noise_correct)
+
+print("Mean encoding leakage on PURE NOISE labels (correct answer = 50%)")
+print(f"  Wrong (global encoding)  : {scores_noise_wrong.mean():.4f} ← should be 0.50!")
+print(f"  Correct (fold encoding)  : {scores_noise_correct.mean():.4f} ← back to chance")
+print(f"  Leakage bias             : {scores_noise_wrong.mean()-scores_noise_correct.mean():+.4f}")
+
+# %% [markdown]
+# <div class="alert alert-success">
+#
+# <b>EXERCISE 1 — Mean encoding leakage</b>
+# <ul>
+#   <li>
+#     <b>Vary the number of regions.</b>
+#     Re-run the mean encoding experiment (with real labels) for
+#     <code>n_regions ∈ [5, 10, 20, 50, 100]</code>, keeping <code>n_enc = 500</code>.
+#     How does the leakage bias change as the number of regions grows?
+#     Why does a larger number of categories make leakage worse?
+#   </li>
+#   <li>
+#     <b>Sklearn fix.</b>
+#     <code>sklearn.preprocessing.TargetEncoder</code> (available since sklearn 1.3)
+#     implements fold-safe target encoding using internal cross-fitting.
+#     Replace the manual <code>mean_encode_fold</code> loop with a pipeline:
+#     <pre>
+# from sklearn.preprocessing import TargetEncoder
+# pipe = make_pipeline(TargetEncoder(random_state=42), LogisticRegression(...))
+# scores = cross_val_score(pipe, X_cat_only, y_enc, cv=cv_enc, scoring='accuracy')
+#     </pre>
+#     Does it recover the unbiased score?
+#   </li>
+# </ul>
+# </div>
+
+# %%
+# Your code here
+
+
 # ## 3. A catastrophic leakage example: feature selection outside CV
 #
 # Scaling leakage is subtle. Feature-selection leakage can be *catastrophic*.
