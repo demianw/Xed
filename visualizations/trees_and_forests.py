@@ -25,13 +25,15 @@
 
 
 # %%
-# %pip install -q scikit-learn==1.6.1 matplotlib==3.9.0
+# %pip install -q scikit-learn==1.9.0 matplotlib==3.11.0
 
 # %%
 import os
-if not os.path.exists('Xed'):
-    os.system('git clone --depth=1 https://github.com/demianw/Xed.git')
-if 'visualizations' not in os.getcwd():
+# Skip clone/chdir when running under GitHub Actions (already in the right directory).
+if not os.environ.get('CI'):
+    if not os.path.exists('Xed'):
+        os.system('git clone --depth=1 https://github.com/demianw/Xed.git')
+if not os.environ.get('CI') and 'visualizations' not in os.getcwd():
     os.chdir('Xed/visualizations')
 
 # %%

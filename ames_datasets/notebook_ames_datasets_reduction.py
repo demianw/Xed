@@ -13,13 +13,15 @@
 # ---
 
 # %% id="MaYbUovVL1ua"
-# %pip install -q pandas==2.2.3 seaborn==0.13.2 scikit-learn==1.6.1
+# %pip install -q pandas==3.0.3 seaborn==0.13.2 scikit-learn==1.9.0
 
 # %% id="YMnzmNN3L1ub"
 import os
-if not os.path.exists('Xed'):
-    os.system('git clone --depth=1 https://github.com/demianw/Xed.git')
-if 'ames_datasets' not in os.getcwd():
+# Skip clone/chdir when running under GitHub Actions (already in the right directory).
+if not os.environ.get('CI'):
+    if not os.path.exists('Xed'):
+        os.system('git clone --depth=1 https://github.com/demianw/Xed.git')
+if not os.environ.get('CI') and 'ames_datasets' not in os.getcwd():
     os.chdir('Xed/ames_datasets')
 
 # %% [markdown] id="3m0k94R4L1ub"
@@ -120,7 +122,7 @@ from sklearn.decomposition import KernelPCA
 
 # %% [markdown] id="-ZFj5-xyL1ud"
 # ### Question 3
-# Use the PCA and KernelPCA dimensionality reduction to implement a regression syste for the house prices. How many components you need to have an error in the estimation of the price of less than 15%? How much data do you need to train these models?
+# Use the PCA and KernelPCA dimensionality reduction to implement a regression system for the house prices. How many components you need to have an error in the estimation of the price of less than 15%? How much data do you need to train these models?
 
 # %% id="F-4LXrGoL1ud"
 

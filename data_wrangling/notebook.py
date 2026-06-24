@@ -14,13 +14,15 @@
 
 # %%
 import os
-if not os.path.exists('Xed'):
-    os.system('git clone --depth=1 https://github.com/demianw/Xed.git')
-if 'data_wrangling' not in os.getcwd():
+# Skip clone/chdir when running under GitHub Actions (already in the right directory).
+if not os.environ.get('CI'):
+    if not os.path.exists('Xed'):
+        os.system('git clone --depth=1 https://github.com/demianw/Xed.git')
+if not os.environ.get('CI') and 'data_wrangling' not in os.getcwd():
     os.chdir('Xed/data_wrangling')
 
 # %%
-# %pip install -q pandas==2.2.3 matplotlib==3.9.0
+# %pip install -q pandas==3.0.3 matplotlib==3.11.0
 
 # %% [markdown]
 # # Data wrangling
@@ -403,7 +405,7 @@ df_countries['population'] > 60
 mask_pop_above_60 = df_countries['population'] > 60
 
 # %% [markdown]
-# We can then use this mask to index a serie or a dataframe.
+# We can then use this mask to index a series or a DataFrame.
 
 # %%
 population = df_countries['population']

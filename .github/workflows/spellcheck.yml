@@ -1,0 +1,111 @@
+name: Spell check
+
+on:
+  push:
+    branches: [main, improvements]
+    paths:
+      - "**/*.py"
+      - "**/*.md"
+      - ".codespellrc"
+      - ".github/workflows/spellcheck.yml"
+  pull_request:
+    branches: [main]
+
+# ──────────────────────────────────────────────────────────────────────────────
+# Two complementary passes:
+#
+#  1. codespell  — fast, dictionary-based check on all source files.
+#                  Catches the common typos (teh, hte, recieve, …) in both
+#                  code comments and Markdown prose.
+#
+#  2. prose-check — a custom Python script extracts the raw Markdown cells
+#                  from every jupytext .py file, writes them to a temporary
+#                  file, and runs pyspelling (aspell backend) over the prose
+#                  only.  This catches more subtle errors that codespell misses
+#                  (wrong-word errors, missing articles, etc. flagged by aspell).
+#
+# Both steps use an ignore-list (.codespellrc / .aspell.en.pws) to suppress
+# false positives from technical terms (sklearn, ipynb, ndarray, …).
+# ──────────────────────────────────────────────────────────────────────────────
+
+jobs:
+  codespell:
+    name: codespell (typo scan)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Run codespell
+        uses: codespell-project/actions-codespell@v2
+        with:
+          # Point at the config file in the repo root.
+          config_file: .codespellrc
+
+  prose-spellcheck:
+    name: Prose spell-check (aspell via pyspelling)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install aspell and pyspelling
+        run: |
+          sudo apt-get install -y aspell aspell-en
+          pip install pyspelling
+
+      - name: Extract markdown prose from notebooks
+        run: |
+          python3 - << 'EOF'
+          """
+          Extract all Markdown cell content from jupytext .py files and write
+          each notebook's prose to a separate .txt file under /tmp/prose/.
+          Only cells whose first character is not '#' inside a code cell are
+          included (i.e., we skip raw Python code).
+          """
+          import glob, os, re
+
+          os.makedirs("/tmp/prose", exist_ok=True)
+          py_files = sorted(glob.glob("**/*.py", recursive=True))
+          py_files = [f for f in py_files if ".ipynb_checkpoints" not in f]
+
+          for py_path in py_files:
+              with open(py_path) as f:
+                  src = f.read()
+
+              # Extract %% [markdown] cell bodies
+              # Each cell starts with "# %% [markdown]" and ends before the
+              # next "# %%" line.
+              cells = re.findall(
+                  r"# %% \[markdown\]\n(.*?)(?=# %%|\Z)",
+                  src,
+                  re.DOTALL,
+              )
+              if not cells:
+                  continue
+
+              prose_lines = []
+              for cell in cells:
+                  for line in cell.splitlines():
+                      # Strip the leading "# " comment marker
+                      if line.startswith("# "):
+                          prose_lines.append(line[2:])
+                      elif line == "#":
+                          prose_lines.append("")
+                      # else: skip non-comment lines inside markdown blocks
+
+              stem = py_path.replace("/", "_").replace(" ", "_").replace(".py", "")
+              out_path = f"/tmp/prose/{stem}.txt"
+              with open(out_path, "w") as f:
+                  f.write("\n".join(prose_lines))
+
+          print(f"Extracted prose from {len(py_files)} source files.")
+          EOF
+
+      - name: Run pyspelling on extracted prose
+        run: |
+          pyspelling --config .pyspelling.yml
+
+      - name: Show failures (if any)
+        if: failure()
+        run: |
+          echo "Spell-check failures detected. See the step above for details."
+          echo "Add false-positives to .aspell.en.pws to suppress them."

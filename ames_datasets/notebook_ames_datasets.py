@@ -13,13 +13,15 @@
 # ---
 
 # %% id="KjAyiNwsTLMC"
-# %pip install -q pandas==2.2.3 seaborn==0.13.2 scikit-learn==1.6.1
+# %pip install -q pandas==3.0.3 seaborn==0.13.2 scikit-learn==1.9.0
 
 # %% id="16wUQ_vATLMD"
 import os
-if not os.path.exists('Xed'):
-    os.system('git clone --depth=1 https://github.com/demianw/Xed.git')
-if 'ames_datasets' not in os.getcwd():
+# Skip clone/chdir when running under GitHub Actions (already in the right directory).
+if not os.environ.get('CI'):
+    if not os.path.exists('Xed'):
+        os.system('git clone --depth=1 https://github.com/demianw/Xed.git')
+if not os.environ.get('CI') and 'ames_datasets' not in os.getcwd():
     os.chdir('Xed/ames_datasets')
 
 # %% [markdown] id="CbMfJvqNTLMD"
@@ -95,7 +97,7 @@ selection_target.shape
 # For this we will
 # * build the column transformer
 # * build the machine learning pipeline
-# * evaluate it trough cross-validation (using `cross_vals_score`)
+# * evaluate it through cross-validation (using `cross_vals_score`)
 #
 # Does it work? Why?
 

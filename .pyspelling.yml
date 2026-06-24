@@ -1,0 +1,19 @@
+# pyspelling configuration — checks extracted Markdown prose from notebooks.
+# Source files are the .txt files written to /tmp/prose/ by the CI script.
+# The aspell personal wordlist (.aspell.en.pws) suppresses false positives.
+
+matrix:
+  - name: Notebook prose (aspell)
+    sources:
+      - "/tmp/prose/*.txt"
+    aspell:
+      lang: en
+      d: en_US
+    dictionary:
+      # Personal wordlist for technical and course-specific terms
+      wordlists:
+        - .aspell.en.pws
+      output: /tmp/aspell_combined.pws
+    pipeline:
+      # The files are already plain text; no pipeline transforms needed.
+      - pyspelling.filters.text:

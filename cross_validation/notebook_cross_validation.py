@@ -13,7 +13,7 @@
 # ---
 
 # %%
-# %pip install -q scikit-learn==1.6.1 matplotlib==3.9.0
+# %pip install -q scikit-learn==1.9.0 matplotlib==3.11.0
 
 
 # %% [markdown]

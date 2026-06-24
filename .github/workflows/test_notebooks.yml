@@ -1,0 +1,141 @@
+name: Test notebooks
+
+on:
+  push:
+    branches: [main, improvements]
+    paths:
+      - "**/*.py"
+      - "**/*.ipynb"
+      - "**/*.csv"
+      - ".github/workflows/test_notebooks.yml"
+  pull_request:
+    branches: [main]
+
+# ──────────────────────────────────────────────────────────────────────────────
+# Strategy
+# ──────────────────────────────────────────────────────────────────────────────
+# We test notebooks that are self-contained or whose data lives in the repo.
+# Notebooks that require large external downloads or paid inference APIs
+# are excluded (see the matrix exclusions below).
+#
+# The `CI=true` environment variable causes the guard cells in each notebook
+# to skip the git-clone / chdir steps that are only needed on Colab.
+#
+# Each notebook is executed in its own directory so that relative data paths
+# (e.g.  datasets/ames_housing.csv) resolve correctly.
+# ──────────────────────────────────────────────────────────────────────────────
+
+jobs:
+  sync-check:
+    name: Verify .py ↔ .ipynb are in sync
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: pip
+
+      - name: Install jupytext
+        run: pip install jupytext==1.19.4
+
+      - name: Check paired files are in sync
+        run: |
+          # Regenerate every .ipynb from its .py source and fail if any differ.
+          # We compare only cell source, ignoring execution counts and outputs.
+          python3 - << 'EOF'
+          import jupytext, glob, sys, json, hashlib
+
+          def cell_sources(nb):
+              return [("".join(c["source"]), c["cell_type"])
+                      for c in nb.cells if "".join(c.get("source", "")).strip()]
+
+          py_files = sorted(glob.glob("**/*.py", recursive=True))
+          py_files = [f for f in py_files if ".ipynb_checkpoints" not in f]
+          failures = []
+          for py_path in py_files:
+              ipynb_path = py_path.replace(".py", ".ipynb")
+              import os
+              if not os.path.exists(ipynb_path):
+                  failures.append(f"MISSING ipynb: {ipynb_path}")
+                  continue
+              nb_from_py   = jupytext.read(py_path)
+              nb_from_ipynb = jupytext.read(ipynb_path)
+              if cell_sources(nb_from_py) != cell_sources(nb_from_ipynb):
+                  failures.append(f"OUT OF SYNC: {py_path} vs {ipynb_path}")
+          if failures:
+              for f in failures:
+                  print("FAIL:", f)
+              sys.exit(1)
+          print(f"All {len(py_files)} pairs are in sync.")
+          EOF
+
+  test:
+    name: Execute — ${{ matrix.notebook }}
+    runs-on: ubuntu-latest
+    needs: sync-check
+
+    strategy:
+      fail-fast: false
+      matrix:
+        notebook:
+          # Fully self-contained (only sklearn built-in datasets)
+          - data_leakage/notebook_data_leakage.ipynb
+          - cross_validation/notebook_cross_validation.ipynb
+          - visualizations/trees_and_forests.ipynb
+          # Repo data (CSV files committed alongside the notebook)
+          - ames_datasets/notebook_ames_datasets.ipynb
+          - ames_datasets/notebook_ames_datasets_reduction.ipynb
+          - titanic_survival_prediction/notebook_titanic_survival_prediction.ipynb
+          - titanic_survival_prediction/notebook_titanic_survival_prediction_check_hypothesis.ipynb
+          # Excluded — require large external downloads or paid APIs:
+          #   text/text_classification_and_llms.ipynb       (~1 GB HuggingFace models)
+          #   ames_datasets/notebook_ames_datasets_foundation_models.ipynb  (TabPFN API)
+          #   movie lens/notebook_movie_lens.ipynb           (100 MB zip)
+          #   data_wrangling/notebook.ipynb                  (215 cells, >10 min)
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: pip
+
+      - name: Install runtime dependencies
+        run: |
+          pip install \
+            jupytext==1.19.4 \
+            nbmake \
+            pytest \
+            scikit-learn==1.9.0 \
+            pandas==3.0.3 \
+            matplotlib==3.11.0 \
+            seaborn==0.13.2 \
+            numpy
+
+      - name: Set non-interactive matplotlib backend
+        run: echo "MPLBACKEND=Agg" >> "$GITHUB_ENV"
+
+      - name: Execute notebook
+        env:
+          CI: "true"   # tells guard cells to skip git-clone and chdir
+        run: |
+          # Resolve the notebook's parent directory and run from there so that
+          # relative paths like  datasets/ames_housing.csv  work correctly.
+          NOTEBOOK="${{ matrix.notebook }}"
+          NBDIR=$(dirname "$NOTEBOOK")
+          NBFILE=$(basename "$NOTEBOOK")
+
+          # Run pytest-nbmake from the notebook's own directory.
+          cd "$NBDIR"
+          pytest --nbmake --nbmake-timeout=300 "$NBFILE" -v
+
+      - name: Upload executed notebook on failure
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: failed-notebook-${{ strategy.job-index }}
+          path: ${{ matrix.notebook }}
+          retention-days: 7

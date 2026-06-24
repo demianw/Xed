@@ -16,13 +16,15 @@
 # # Exploration of the Titanic data set
 
 # %% colab={"base_uri": "https://localhost:8080/"} id="smzP4B7HwQ5k" outputId="46e588e7-d835-4cde-85ec-0a34dd478af9"
-# %pip install -q pandas==2.2.3 seaborn==0.13.2 scikit-learn==1.6.1
+# %pip install -q pandas==3.0.3 seaborn==0.13.2 scikit-learn==1.9.0
 
 # %% id="QNKUn2b1wQ5l"
 import os
-if not os.path.exists('Xed'):
-    os.system('git clone --depth=1 https://github.com/demianw/Xed.git')
-if 'titanic_survival_prediction' not in os.getcwd():
+# Skip clone/chdir when running under GitHub Actions (already in the right directory).
+if not os.environ.get('CI'):
+    if not os.path.exists('Xed'):
+        os.system('git clone --depth=1 https://github.com/demianw/Xed.git')
+if not os.environ.get('CI') and 'titanic_survival_prediction' not in os.getcwd():
     os.chdir('Xed/titanic_survival_prediction')
 
 # %% id="SbWLzPLpwQ5l"

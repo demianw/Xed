@@ -12,13 +12,15 @@
 # ---
 
 # %% id="MaYbUovVL1ua" colab={"base_uri": "https://localhost:8080/"} outputId="3432bdb7-dba2-4bc0-8532-efc982141ed9"
-# %pip install -q seaborn==0.13.2 scikit-learn==1.6.1 tabpfn tabicl
+# %pip install -q seaborn==0.13.2 scikit-learn==1.9.0 tabpfn tabicl
 
 # %% id="YMnzmNN3L1ub" colab={"base_uri": "https://localhost:8080/"} outputId="8c643698-e4bd-46f8-f7ac-f51a1c69fe40"
 import os
-if not os.path.exists('Xed'):
-    os.system('git clone --depth=1 https://github.com/demianw/Xed.git')
-if 'ames_datasets' not in os.getcwd():
+# Skip clone/chdir when running under GitHub Actions (already in the right directory).
+if not os.environ.get('CI'):
+    if not os.path.exists('Xed'):
+        os.system('git clone --depth=1 https://github.com/demianw/Xed.git')
+if not os.environ.get('CI') and 'ames_datasets' not in os.getcwd():
     os.chdir('Xed/ames_datasets')
 
 # %% [markdown] id="3m0k94R4L1ub"
