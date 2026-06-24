@@ -1,0 +1,4 @@
+# Ignore ipynb checkpoints
+**/.ipynb_checkpoints/
+# Keep generated .ipynb files in version control
+# (they are needed for the Colab links to work)
