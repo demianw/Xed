@@ -90,11 +90,14 @@ jobs:
           - titanic_survival_prediction/notebook_titanic_survival_prediction.ipynb
           - titanic_survival_prediction/notebook_titanic_survival_prediction_check_hypothesis.ipynb
           - evaluation_metrics/notebook_evaluation_metrics.ipynb
+          - us_voting/notebook_us_voting.ipynb
+          - dimensionality_reduction/notebook_dimensionality_reduction.ipynb
           # Excluded — require large external downloads or paid APIs:
           #   text/text_classification_and_llms.ipynb       (~1 GB HuggingFace models)
           #   ames_datasets/notebook_ames_datasets_foundation_models.ipynb  (TabPFN API)
           #   movie lens/notebook_movie_lens.ipynb           (100 MB zip)
           #   data_wrangling/notebook.ipynb                  (215 cells, >10 min)
+          #   insurance_time_series/notebook_insurance_time_series.ipynb (freMTPL2 678k rows)
 
     steps:
       - uses: actions/checkout@v4
