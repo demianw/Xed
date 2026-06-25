@@ -10,7 +10,7 @@ name = "xed"
 version = "0.1.0"
 description = "Cardiff Introductory Data Science — course datasets and utilities"
 readme = "README.md"
-requires-python = ">=3.10"
+requires-python = ">=3.11"
 
 # Core dependencies installed when a student runs:
 #   pip install git+https://github.com/demianw/Xed.git
@@ -43,6 +43,17 @@ dev = [
     "rdata>=0.9",
     "scipy>=1.13",
 ]
+
+
+[project.scripts]
+xed-lint       = "xed._cli:lint"
+xed-lint-fix   = "xed._cli:lint_fix"
+xed-fmt-check  = "xed._cli:fmt_check"
+xed-fmt        = "xed._cli:fmt"
+xed-check      = "xed._cli:check"
+xed-fix        = "xed._cli:fix"
+xed-convert    = "xed._cli:convert"
+xed-sync-check = "xed._cli:sync_check"
 
 [tool.hatch.build.targets.wheel]
 packages = ["xed"]
@@ -109,18 +120,3 @@ known-first-party = ["xed"]
 [tool.ruff.format]
 quote-style  = "double"
 indent-style = "space"
-
-# ---------------------------------------------------------------------------
-# uv scripts  (run with: uv run <script-name>)
-# Mirrors the hatch scripts above so the repo works with both tools.
-# ---------------------------------------------------------------------------
-[tool.uv.scripts]
-lint       = "ruff check ."
-lint-fix   = "ruff check --fix ."
-fmt-check  = "ruff format --check ."
-fmt        = "ruff format ."
-convert    = "python scripts/convert_notebooks.py"
-sync-check = "python scripts/convert_notebooks.py --check"
-all-checks = { cmd = ["bash", "-c",
-    "ruff check . && ruff format --check . && python scripts/convert_notebooks.py --check"
-] }
