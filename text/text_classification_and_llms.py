@@ -353,7 +353,7 @@ print(f"Train embeddings shape: {train_embeddings.shape}")
 # Your code here
 
 # %% [markdown]
-# ## 6. Zero-shot classification with a generative LLM (T5)
+# ## 6. Zero-shot classification with a generative LLM (Qwen2.5 via llama.cpp)
 #
 # **Zero-shot classification** means classifying text *without any task-specific
 # training*. Instead of fitting a classifier on labelled examples, we frame the
@@ -361,53 +361,74 @@ print(f"Train embeddings shape: {train_embeddings.shape}")
 # produce the answer directly. The model's only "knowledge" of the task comes
 # from the wording of the prompt.
 #
-# We use **`google/flan-t5-small`** as the example model because it is small
-# (~80 MB), instruction-tuned (so it follows prompts reasonably well), and runs
-# on a CPU — no GPU required. Larger models (flan-t5-base, flan-t5-large, or
-# decoder-only LLMs) would give better accuracy but need a GPU and are slower.
+# We use **Qwen2.5-0.5B-Instruct** via [`llama.cpp`](https://github.com/ggerganov/llama.cpp),
+# a small instruction-tuned model (~500 MB, Q4 quantised) that runs entirely on
+# CPU in under a second per review.  Larger models (Llama-3.2-1B, Phi-3-mini)
+# would give even better accuracy but take slightly longer.
 #
-# > **This section is OPTIONAL.** It downloads a model from Hugging Face and
-# > runs inference, which is slow on CPU (several minutes for 50 samples). It
-# > is **CI-guarded** — it will be skipped when the notebook is executed under
-# > `nbmake` in GitHub Actions, so it never blocks the test suite.
+# > **This section is OPTIONAL.** It downloads a model from Hugging Face on
+# > first run (~350 MB).  It is **CI-guarded** — it will be skipped when the
+# > notebook is executed under `nbmake` in GitHub Actions.
 
 # %%
 if not os.environ.get("CI"):
-    import torch
-    from transformers import pipeline as tpipeline
-    from transformers.pipelines.pt_utils import KeyDataset
+    from llama_cpp import Llama
     from tqdm import tqdm
+    import time
 
-    device = "cuda:0" if torch.cuda.is_available() else "cpu"
-    print(f"Running T5 on {device} (this may take a while on CPU)")
+    MODEL_PATH = (
+        "Qwen/Qwen2.5-0.5B-Instruct-GGUF",
+        "qwen2.5-0.5b-instruct-q4_k_m.gguf",
+    )
 
-    pipe = tpipeline("text2text-generation", model="google/flan-t5-small", device=device)
+    print("Loading Qwen2.5-0.5B via llama.cpp …")
+    t0 = time.time()
+    llm = Llama.from_pretrained(
+        repo_id=MODEL_PATH[0],
+        filename=MODEL_PATH[1],
+        n_ctx=512,
+        n_threads=8,
+        verbose=False,
+    )
+    print(f"Model loaded in {time.time() - t0:.1f}s")
 
     # Working example prompt — not empty string!
-    prompt = (
-        "Is this movie review positive or negative? Answer with 'positive' or 'negative'. Review: "
+    system_prompt = (
+        'You are a sentiment classifier. '
+        'Answer only with "positive" or "negative".'
     )
-    llm_response = data.map(lambda example: {"t5": prompt + example["text"]})
 
     # Use a small subset for demo (not all 1000 test samples)
     n_demo = 50
-    test_subset = llm_response["test"].select(range(n_demo))
+    test_texts = data["test"]["text"][:n_demo]
+    y_true = data["test"]["label"][:n_demo]
+
     y_pred = []
-    for output in tqdm(pipe(KeyDataset(test_subset, "t5"))):
-        text = output[0]["generated_text"].lower().strip()
-        if "pos" in text:
+    t0 = time.time()
+    for text in tqdm(test_texts):
+        prompt = (
+            f"<|im_start|>system\n{system_prompt}<|im_end|>\n"
+            f"<|im_start|>user\nIs this movie review positive or negative? "
+            f"Review: {text}<|im_end|>\n<|im_start|>assistant\n"
+        )
+        output = llm(prompt, max_tokens=10, temperature=0, stop=["<|im_end|>"])
+        response = output["choices"][0]["text"].strip().lower()
+        if "positive" in response:
             y_pred.append(1)
-        elif "neg" in text:
+        elif "negative" in response:
             y_pred.append(0)
         else:
             y_pred.append(0)  # default to negative for unexpected output
 
+    elapsed = time.time() - t0
+
     from sklearn.metrics import accuracy_score
 
-    y_true = data["test"]["label"][:n_demo]
-    print(f"T5 zero-shot accuracy (on {n_demo} samples): {accuracy_score(y_true, y_pred):.2f}")
+    acc = accuracy_score(y_true, y_pred)
+    print(f"\nQwen2.5-0.5B zero-shot accuracy (on {n_demo} samples): {acc:.2f}")
+    print(f"Total time: {elapsed:.1f}s  ({elapsed / n_demo:.2f}s per review)")
 else:
-    print("Skipping T5 demo in CI (requires model download + slow inference).")
+    print("Skipping Qwen2.5 demo in CI (requires model download).")
 
 # %% [markdown]
 # <div class="alert alert-success">

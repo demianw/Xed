@@ -33,6 +33,7 @@ text         = [
     "sentence-transformers>=3",
     "transformers>=4.44",
     "torch",
+    "llama-cpp-python>=0.3",
 ]
 tabular-fm   = ["tabpfn", "tabicl"]
 dev = [
