@@ -56,13 +56,14 @@ import seaborn as sns
 # ### Downloading the MovieLens 1M dataset
 
 # %%
-import os, urllib.request, zipfile
+import os
+import urllib.request
+import zipfile
 
 if not os.path.exists("ml-1m"):
     print("Downloading MovieLens 1M...")
     urllib.request.urlretrieve(
-        "https://files.grouplens.org/datasets/movielens/ml-1m.zip",
-        "ml-1m.zip"
+        "https://files.grouplens.org/datasets/movielens/ml-1m.zip", "ml-1m.zip"
     )
     with zipfile.ZipFile("ml-1m.zip") as zf:
         zf.extractall(".")
@@ -74,8 +75,8 @@ else:
 # ### Load the `users` data as a Pandas DataFrame
 
 # %%
-unames = ['user_id', 'gender', 'age', 'occupation', 'zip']
-users = pd.read_table('ml-1m/users.dat', sep='::', header=None, names=unames, engine='python')
+unames = ["user_id", "gender", "age", "occupation", "zip"]
+users = pd.read_table("ml-1m/users.dat", sep="::", header=None, names=unames, engine="python")
 
 # %%
 users.head()
@@ -84,8 +85,8 @@ users.head()
 # ### Read the "rating"
 
 # %%
-rnames = ['user_id', 'movie_id', 'rating', 'timestamp']
-ratings = pd.read_table('ml-1m/ratings.dat', sep='::', header=None, names=rnames, engine='python')
+rnames = ["user_id", "movie_id", "rating", "timestamp"]
+ratings = pd.read_table("ml-1m/ratings.dat", sep="::", header=None, names=rnames, engine="python")
 
 # %%
 ratings.head(10)
@@ -94,11 +95,9 @@ ratings.head(10)
 # ### Read the movies
 
 # %%
-mnames = ['movie_id', 'title', 'genres']
+mnames = ["movie_id", "title", "genres"]
 movies = pd.read_table(
-    'ml-1m/movies.dat', sep='::',
-    header=None, names=mnames, engine='python',
-    encoding="utf8"
+    "ml-1m/movies.dat", sep="::", header=None, names=mnames, engine="python", encoding="utf8"
 )
 
 # %%
@@ -143,7 +142,7 @@ data.head()
 # %% [markdown]
 # ### Question 3b
 #
-# What are the most popular movies among the movies that have at least 30 grades? 
+# What are the most popular movies among the movies that have at least 30 grades?
 
 # %% jupyter={"outputs_hidden": true}
 
@@ -158,7 +157,7 @@ data.head()
 # # Data Visualization
 
 # %%
-# %matplotlib inline 
+# %matplotlib inline
 
 # %% [markdown]
 # ### Question 4

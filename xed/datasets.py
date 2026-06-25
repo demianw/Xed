@@ -35,9 +35,7 @@ import pandas as pd
 # Cache directory
 # ---------------------------------------------------------------------------
 
-_CACHE_DIR = Path(
-    os.environ.get("XED_CACHE_DIR", Path.home() / ".cache" / "xed_datasets")
-)
+_CACHE_DIR = Path(os.environ.get("XED_CACHE_DIR", Path.home() / ".cache" / "xed_datasets"))
 
 # ---------------------------------------------------------------------------
 # Registry of remote datasets
@@ -50,8 +48,7 @@ _REGISTRY: dict[str, tuple[str, str, str]] = {
     # 891 rows × 11 features + PassengerId index
     # ------------------------------------------------------------------
     "titanic.csv": (
-        "https://raw.githubusercontent.com/datasciencedojo/datasets"
-        "/master/titanic.csv",
+        "https://raw.githubusercontent.com/datasciencedojo/datasets/master/titanic.csv",
         "4a437fde05fe5264e1701a7387ac6fb75393772ba38bb2c9c566405af5af4bd7",
         "Titanic passenger data — datasciencedojo/datasets on GitHub. "
         "Originally compiled from the British Board of Trade inquiry (1912).",
@@ -85,8 +82,7 @@ _REGISTRY: dict[str, tuple[str, str, str]] = {
     # 36 660 communes × 9 columns
     # ------------------------------------------------------------------
     "referendum.csv": (
-        "https://raw.githubusercontent.com/demianw/Xed"
-        "/main/data_wrangling/data/referendum.csv",
+        "https://raw.githubusercontent.com/demianw/Xed/main/data_wrangling/data/referendum.csv",
         "ffb0e560f1044621d6cbc15aaaf701396138cd52ff64a8e2c576e523fbc1f92c",
         "French Ministry of the Interior — Results of the 29 May 2005 "
         "referendum on the Treaty establishing a Constitution for Europe, "
@@ -96,25 +92,19 @@ _REGISTRY: dict[str, tuple[str, str, str]] = {
     # French administrative geography: departments and regions
     # ------------------------------------------------------------------
     "departments.csv": (
-        "https://raw.githubusercontent.com/demianw/Xed"
-        "/main/data_wrangling/data/departments.csv",
+        "https://raw.githubusercontent.com/demianw/Xed/main/data_wrangling/data/departments.csv",
         "c4c40dc3f8a67a0d444a76176d46d088dbc55d35b6388d976c959acdc1da1a21",
-        "French department codes and names (INSEE 2015). "
-        "Served from the Xed course repository.",
+        "French department codes and names (INSEE 2015). Served from the Xed course repository.",
     ),
     "regions.csv": (
-        "https://raw.githubusercontent.com/demianw/Xed"
-        "/main/data_wrangling/data/regions.csv",
+        "https://raw.githubusercontent.com/demianw/Xed/main/data_wrangling/data/regions.csv",
         "840783aeb203c0389a89bf8c372ecb31837b8d17fedd2b3f5f3bc13c7cea90b7",
-        "French region codes and names (INSEE 2015). "
-        "Served from the Xed course repository.",
+        "French region codes and names (INSEE 2015). Served from the Xed course repository.",
     ),
     "regions.geojson": (
-        "https://raw.githubusercontent.com/demianw/Xed"
-        "/main/data_wrangling/data/regions.geojson",
+        "https://raw.githubusercontent.com/demianw/Xed/main/data_wrangling/data/regions.geojson",
         "84bccb38f31f1e6db7dbe7920373b684e6ea043147e7254c27a290ed95694a14",
-        "French metropolitan region boundaries (GeoJSON). "
-        "Served from the Xed course repository.",
+        "French metropolitan region boundaries (GeoJSON). Served from the Xed course repository.",
     ),
     "departements.geojson": (
         "https://raw.githubusercontent.com/demianw/Xed"
@@ -155,6 +145,7 @@ _REGISTRY: dict[str, tuple[str, str, str]] = {
 # ---------------------------------------------------------------------------
 # Internal download helper
 # ---------------------------------------------------------------------------
+
 
 def _sha256(data: bytes) -> str:
     return hashlib.sha256(data).hexdigest()
@@ -238,6 +229,7 @@ def _fetch(name: str, verbose: bool = True) -> Path:
 # ---------------------------------------------------------------------------
 # Public loaders
 # ---------------------------------------------------------------------------
+
 
 def load_titanic(verbose: bool = True) -> pd.DataFrame:
     """
@@ -336,8 +328,8 @@ def load_no2(verbose: bool = True) -> pd.DataFrame:
     df = pd.read_csv(
         path,
         sep=";",
-        skiprows=[1],           # row 1 contains the unit label (µg/m³)
-        na_values=["n/d"],      # station-down / missing value marker
+        skiprows=[1],  # row 1 contains the unit label (µg/m³)
+        na_values=["n/d"],  # station-down / missing value marker
         index_col=0,
         parse_dates=True,
     )
@@ -458,6 +450,7 @@ def fetch_french_geojson(
 # Convenience summary
 # ---------------------------------------------------------------------------
 
+
 def load_us_county_elections(verbose: bool = True) -> pd.DataFrame:
     """
     Load the MIT MEDSL US county-level election and demographics dataset.
@@ -474,7 +467,6 @@ def load_us_county_elections(verbose: bool = True) -> pd.DataFrame:
     """
     path = _fetch("election-context-2018.csv", verbose=verbose)
     return pd.read_csv(path)
-
 
 
 def load_gasoline_nir(verbose: bool = True) -> pd.DataFrame:
@@ -526,8 +518,9 @@ def load_gasoline_nir(verbose: bool = True) -> pd.DataFrame:
             "Install it with:  pip install rdata"
         ) from e
 
-    import tarfile as _tarfile
     import io as _io
+    import tarfile as _tarfile
+
     import numpy as _np
 
     tarball_path = _fetch("pls_2.8-3.tar.gz", verbose=verbose)
@@ -556,8 +549,8 @@ def load_gasoline_nir(verbose: bool = True) -> pd.DataFrame:
     if len(arrays) < 2:
         raise RuntimeError("Could not extract arrays from gasoline.RData.")
 
-    octane = arrays[0]           # shape (60,)
-    nir_flat = arrays[1]         # shape (24060,) — column-major (R convention)
+    octane = arrays[0]  # shape (60,)
+    nir_flat = arrays[1]  # shape (24060,) — column-major (R convention)
     NIR = nir_flat.reshape(401, 60).T  # → (60, 401)
 
     wavelengths = range(900, 1702, 2)  # 900, 902, …, 1700 nm (401 values)

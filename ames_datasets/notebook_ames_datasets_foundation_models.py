@@ -14,14 +14,15 @@
 # %% id="MaYbUovVL1ua" colab={"base_uri": "https://localhost:8080/"} outputId="3432bdb7-dba2-4bc0-8532-efc982141ed9"
 
 # %% id="YMnzmNN3L1ub" colab={"base_uri": "https://localhost:8080/"} outputId="8c643698-e4bd-46f8-f7ac-f51a1c69fe40"
-import os, sys, subprocess
+import os
+import subprocess
+import sys
 
 # Install the course package and all pinned dependencies.
 # In GitHub Actions CI this step is skipped (pre-installed via pip install -e .[dev]).
-if not os.environ.get('CI'):
+if not os.environ.get("CI"):
     subprocess.run(
-        [sys.executable, '-m', 'pip', 'install', '-q',
-         'git+https://github.com/demianw/Xed.git'],
+        [sys.executable, "-m", "pip", "install", "-q", "git+https://github.com/demianw/Xed.git"],
         check=True,
     )
 
@@ -112,6 +113,7 @@ regressor_icl = TabICLRegressor()
 
 # %% id="4NNL3tRnSAtX"
 from warnings import filterwarnings
+
 # Suppress noisy but harmless convergence warnings from TabPFN's internal torch ops.
 # In production code, investigate every warning rather than silencing them.
 filterwarnings("ignore", category=UserWarning)

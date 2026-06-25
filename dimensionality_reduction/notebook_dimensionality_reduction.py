@@ -15,20 +15,26 @@
 # %%
 
 # %%
-import os, sys, subprocess
+import os
+import subprocess
+import sys
 
 # Install the course package and all pinned dependencies.
 # In GitHub Actions CI this step is skipped (pre-installed via pip install -e .[dev]).
-if not os.environ.get('CI'):
+if not os.environ.get("CI"):
     subprocess.run(
-        [sys.executable, '-m', 'pip', 'install', '-q',
-         'git+https://github.com/demianw/Xed.git'],
+        [sys.executable, "-m", "pip", "install", "-q", "git+https://github.com/demianw/Xed.git"],
         check=True,
     )
     subprocess.run(
-        [sys.executable, '-m', 'pip', 'install', '-q',
-         'rdata>=0.9',
-         ],
+        [
+            sys.executable,
+            "-m",
+            "pip",
+            "install",
+            "-q",
+            "rdata>=0.9",
+        ],
         check=True,
     )
 
@@ -70,7 +76,8 @@ if not os.environ.get('CI'):
 
 # %%
 import warnings
-warnings.filterwarnings('ignore')
+
+warnings.filterwarnings("ignore")
 
 import numpy as np
 import pandas as pd
@@ -84,13 +91,12 @@ from sklearn.svm import SVC
 from sklearn.linear_model import LogisticRegression
 from sklearn.pipeline import make_pipeline
 from sklearn.preprocessing import StandardScaler
-from sklearn.model_selection import (cross_val_score, StratifiedKFold,
-                                     GridSearchCV, validation_curve)
+from sklearn.model_selection import cross_val_score, StratifiedKFold, GridSearchCV, validation_curve
 from sklearn.metrics import accuracy_score
 from scipy.stats import pearsonr
 
 rng = np.random.default_rng(42)
-cv  = StratifiedKFold(n_splits=5, shuffle=True, random_state=42)
+cv = StratifiedKFold(n_splits=5, shuffle=True, random_state=42)
 
 # %% [markdown]
 # ---
@@ -113,14 +119,16 @@ faces = fetch_olivetti_faces(shuffle=True, random_state=42)
 X_faces, y_faces = faces.data, faces.target
 
 print(f"Shape: {X_faces.shape}  ({X_faces.shape[0]} images, {X_faces.shape[1]} pixels)")
-print(f"Classes: {np.unique(y_faces).size} people, "
-      f"{np.bincount(y_faces).min()}–{np.bincount(y_faces).max()} photos each")
+print(
+    f"Classes: {np.unique(y_faces).size} people, "
+    f"{np.bincount(y_faces).min()}–{np.bincount(y_faces).max()} photos each"
+)
 
-fig, axes = plt.subplots(3, 8, figsize=(16, 6), subplot_kw={'xticks': [], 'yticks': []})
+fig, axes = plt.subplots(3, 8, figsize=(16, 6), subplot_kw={"xticks": [], "yticks": []})
 for ax, img, label in zip(axes.ravel(), faces.images[:24], faces.target[:24]):
-    ax.imshow(img, cmap='gray')
-    ax.set_title(f'ID {label}', fontsize=8)
-fig.suptitle('Sample photos from the Olivetti Faces dataset', fontsize=12)
+    ax.imshow(img, cmap="gray")
+    ax.set_title(f"ID {label}", fontsize=8)
+fig.suptitle("Sample photos from the Olivetti Faces dataset", fontsize=12)
 plt.tight_layout()
 plt.show()
 
@@ -136,16 +144,16 @@ plt.show()
 n_components_range = [5, 10, 20, 30, 50, 75, 100, 150, 200]
 
 # Raw pixels
-score_raw_knn = cross_val_score(
-    KNeighborsClassifier(n_neighbors=3), X_faces, y_faces, cv=cv
-).mean()
+score_raw_knn = cross_val_score(KNeighborsClassifier(n_neighbors=3), X_faces, y_faces, cv=cv).mean()
 
 # PCA + KNN (standard, no whitening)
 scores_pca_knn = []
 for n in n_components_range:
     s = cross_val_score(
         make_pipeline(PCA(n, random_state=42), KNeighborsClassifier(n_neighbors=3)),
-        X_faces, y_faces, cv=cv,
+        X_faces,
+        y_faces,
+        cv=cv,
     ).mean()
     scores_pca_knn.append(s)
 
@@ -154,22 +162,26 @@ scores_wpca_knn = []
 for n in n_components_range:
     s = cross_val_score(
         make_pipeline(PCA(n, whiten=True, random_state=42), KNeighborsClassifier(n_neighbors=3)),
-        X_faces, y_faces, cv=cv,
+        X_faces,
+        y_faces,
+        cv=cv,
     ).mean()
     scores_wpca_knn.append(s)
 
 fig, ax = plt.subplots(figsize=(8, 4))
-ax.axhline(score_raw_knn, color='red', linestyle='--', label=f'Raw 4096 pixels: {score_raw_knn:.3f}')
-ax.plot(n_components_range, scores_pca_knn,  marker='o', label='PCA (no whiten)')
-ax.plot(n_components_range, scores_wpca_knn, marker='s', label='PCA (whiten=True)')
-ax.set_xlabel('Number of PCA components')
-ax.set_ylabel('5-fold CV accuracy')
-ax.set_title('Face recognition: KNN accuracy vs PCA components')
+ax.axhline(
+    score_raw_knn, color="red", linestyle="--", label=f"Raw 4096 pixels: {score_raw_knn:.3f}"
+)
+ax.plot(n_components_range, scores_pca_knn, marker="o", label="PCA (no whiten)")
+ax.plot(n_components_range, scores_wpca_knn, marker="s", label="PCA (whiten=True)")
+ax.set_xlabel("Number of PCA components")
+ax.set_ylabel("5-fold CV accuracy")
+ax.set_title("Face recognition: KNN accuracy vs PCA components")
 ax.legend()
 plt.tight_layout()
 plt.show()
 
-best_n   = n_components_range[np.argmax(scores_wpca_knn)]
+best_n = n_components_range[np.argmax(scores_wpca_knn)]
 best_acc = max(scores_wpca_knn)
 print(f"Best whitened PCA: {best_n} components → accuracy = {best_acc:.3f}")
 print(f"Raw pixel baseline:                       accuracy = {score_raw_knn:.3f}")
@@ -216,14 +228,13 @@ print(f"Improvement: {best_acc - score_raw_knn:+.3f}")
 # %%
 pca_vis = PCA(n_components=24, random_state=42).fit(X_faces)
 
-fig, axes = plt.subplots(3, 8, figsize=(16, 6),
-                         subplot_kw={'xticks': [], 'yticks': []})
-axes[0, 0].imshow(X_faces.mean(axis=0).reshape(64, 64), cmap='gray')
-axes[0, 0].set_title('Mean face', fontsize=8)
+fig, axes = plt.subplots(3, 8, figsize=(16, 6), subplot_kw={"xticks": [], "yticks": []})
+axes[0, 0].imshow(X_faces.mean(axis=0).reshape(64, 64), cmap="gray")
+axes[0, 0].set_title("Mean face", fontsize=8)
 for ax, comp, i in zip(axes.ravel()[1:], pca_vis.components_, range(1, 25)):
-    ax.imshow(comp.reshape(64, 64), cmap='RdBu_r')
-    ax.set_title(f'PC {i}\n({pca_vis.explained_variance_ratio_[i-1]*100:.1f}%)', fontsize=7)
-fig.suptitle('Eigenfaces — the first 23 principal components', fontsize=11)
+    ax.imshow(comp.reshape(64, 64), cmap="RdBu_r")
+    ax.set_title(f"PC {i}\n({pca_vis.explained_variance_ratio_[i - 1] * 100:.1f}%)", fontsize=7)
+fig.suptitle("Eigenfaces — the first 23 principal components", fontsize=11)
 plt.tight_layout()
 plt.show()
 
@@ -231,21 +242,21 @@ plt.show()
 fig, axes = plt.subplots(1, 2, figsize=(11, 4))
 n_show = 100
 axes[0].bar(range(1, n_show + 1), pca_vis.explained_variance_ratio_[:n_show] * 100)
-axes[0].set_xlabel('Principal component')
-axes[0].set_ylabel('Explained variance (%)')
-axes[0].set_title('Scree plot (individual variance per PC)')
+axes[0].set_xlabel("Principal component")
+axes[0].set_ylabel("Explained variance (%)")
+axes[0].set_title("Scree plot (individual variance per PC)")
 
 pca_full = PCA(random_state=42).fit(X_faces)
 cumvar = np.cumsum(pca_full.explained_variance_ratio_) * 100
 axes[1].plot(range(1, len(cumvar) + 1), cumvar)
 for threshold in [80, 90, 95]:
     n_th = np.searchsorted(cumvar, threshold) + 1
-    axes[1].axhline(threshold, color='grey', linestyle=':', linewidth=0.8)
-    axes[1].axvline(n_th, color='grey', linestyle=':', linewidth=0.8)
-    axes[1].annotate(f'{threshold}% @ {n_th} PCs', xy=(n_th + 2, threshold - 2), fontsize=8)
-axes[1].set_xlabel('Number of components')
-axes[1].set_ylabel('Cumulative explained variance (%)')
-axes[1].set_title('Cumulative explained variance')
+    axes[1].axhline(threshold, color="grey", linestyle=":", linewidth=0.8)
+    axes[1].axvline(n_th, color="grey", linestyle=":", linewidth=0.8)
+    axes[1].annotate(f"{threshold}% @ {n_th} PCs", xy=(n_th + 2, threshold - 2), fontsize=8)
+axes[1].set_xlabel("Number of components")
+axes[1].set_ylabel("Cumulative explained variance (%)")
+axes[1].set_title("Cumulative explained variance")
 plt.tight_layout()
 plt.show()
 
@@ -297,20 +308,20 @@ X_dig, y_dig = load_digits(return_X_y=True)
 print(f"Digits: {X_dig.shape[0]} images × {X_dig.shape[1]} pixels, {np.unique(y_dig).size} classes")
 
 # Add controlled Gaussian noise at two levels
-X_noisy_5  = X_dig + rng.normal(scale=5.0,  size=X_dig.shape)   # moderate noise
-X_noisy_10 = X_dig + rng.normal(scale=10.0, size=X_dig.shape)   # heavy noise
+X_noisy_5 = X_dig + rng.normal(scale=5.0, size=X_dig.shape)  # moderate noise
+X_noisy_10 = X_dig + rng.normal(scale=10.0, size=X_dig.shape)  # heavy noise
 
 # Visualise clean vs noisy
-fig, axes = plt.subplots(3, 8, figsize=(14, 5), subplot_kw={'xticks': [], 'yticks': []})
+fig, axes = plt.subplots(3, 8, figsize=(14, 5), subplot_kw={"xticks": [], "yticks": []})
 for i in range(8):
-    axes[0, i].imshow(X_dig[i].reshape(8, 8),     cmap='gray_r')
-    axes[1, i].imshow(X_noisy_5[i].reshape(8, 8), cmap='gray_r')
-    axes[2, i].imshow(X_noisy_10[i].reshape(8, 8),cmap='gray_r')
+    axes[0, i].imshow(X_dig[i].reshape(8, 8), cmap="gray_r")
+    axes[1, i].imshow(X_noisy_5[i].reshape(8, 8), cmap="gray_r")
+    axes[2, i].imshow(X_noisy_10[i].reshape(8, 8), cmap="gray_r")
     if i == 0:
-        axes[0, i].set_ylabel('Clean',        fontsize=9)
-        axes[1, i].set_ylabel('Noise σ=5',    fontsize=9)
-        axes[2, i].set_ylabel('Noise σ=10',   fontsize=9)
-plt.suptitle('Handwritten digits: clean and noisy versions', fontsize=11)
+        axes[0, i].set_ylabel("Clean", fontsize=9)
+        axes[1, i].set_ylabel("Noise σ=5", fontsize=9)
+        axes[2, i].set_ylabel("Noise σ=10", fontsize=9)
+plt.suptitle("Handwritten digits: clean and noisy versions", fontsize=11)
 plt.tight_layout()
 plt.show()
 
@@ -320,39 +331,50 @@ plt.show()
 # %%
 results = []
 for noise_std, X_noisy in [(0, X_dig), (5, X_noisy_5), (10, X_noisy_10)]:
-    raw = cross_val_score(
-        KNeighborsClassifier(n_neighbors=3), X_noisy, y_dig, cv=cv
-    ).mean()
+    raw = cross_val_score(KNeighborsClassifier(n_neighbors=3), X_noisy, y_dig, cv=cv).mean()
     for n_comp in [10, 15, 20, 25, 30]:
         pca_score = cross_val_score(
             make_pipeline(PCA(n_comp, random_state=42), KNeighborsClassifier(n_neighbors=3)),
-            X_noisy, y_dig, cv=cv,
+            X_noisy,
+            y_dig,
+            cv=cv,
         ).mean()
-        results.append({'noise': noise_std, 'n_components': n_comp,
-                        'accuracy_pca': pca_score, 'accuracy_raw': raw})
+        results.append(
+            {
+                "noise": noise_std,
+                "n_components": n_comp,
+                "accuracy_pca": pca_score,
+                "accuracy_raw": raw,
+            }
+        )
 
 df_results = pd.DataFrame(results)
 
 fig, axes = plt.subplots(1, 3, figsize=(14, 4), sharey=True)
 for ax, noise_std in zip(axes, [0, 5, 10]):
-    sub = df_results[df_results['noise'] == noise_std]
-    ax.plot(sub['n_components'], sub['accuracy_pca'],
-            marker='o', label='PCA + KNN')
-    ax.axhline(sub['accuracy_raw'].iloc[0], color='red',
-               linestyle='--', label=f'Raw: {sub["accuracy_raw"].iloc[0]:.3f}')
-    ax.set_title(f'Noise σ = {noise_std}')
-    ax.set_xlabel('Number of PCA components')
+    sub = df_results[df_results["noise"] == noise_std]
+    ax.plot(sub["n_components"], sub["accuracy_pca"], marker="o", label="PCA + KNN")
+    ax.axhline(
+        sub["accuracy_raw"].iloc[0],
+        color="red",
+        linestyle="--",
+        label=f"Raw: {sub['accuracy_raw'].iloc[0]:.3f}",
+    )
+    ax.set_title(f"Noise σ = {noise_std}")
+    ax.set_xlabel("Number of PCA components")
     ax.legend(fontsize=8)
-axes[0].set_ylabel('5-fold CV accuracy')
-plt.suptitle('Digits — KNN accuracy: raw pixels vs PCA components', fontsize=11)
+axes[0].set_ylabel("5-fold CV accuracy")
+plt.suptitle("Digits — KNN accuracy: raw pixels vs PCA components", fontsize=11)
 plt.tight_layout()
 plt.show()
 
 for noise_std in [0, 5, 10]:
-    sub = df_results[df_results['noise'] == noise_std]
-    raw_acc = sub['accuracy_raw'].iloc[0]
-    best_pca = sub['accuracy_pca'].max()
-    print(f"σ={noise_std:2d}: raw={raw_acc:.3f}  best PCA={best_pca:.3f}  improvement={best_pca-raw_acc:+.3f}")
+    sub = df_results[df_results["noise"] == noise_std]
+    raw_acc = sub["accuracy_raw"].iloc[0]
+    best_pca = sub["accuracy_pca"].max()
+    print(
+        f"σ={noise_std:2d}: raw={raw_acc:.3f}  best PCA={best_pca:.3f}  improvement={best_pca - raw_acc:+.3f}"
+    )
 
 # %% [markdown]
 # <div class="alert alert-success">
@@ -410,18 +432,22 @@ for noise_std in [0, 5, 10]:
 
 # %%
 from xed.datasets import load_gasoline_nir
-import warnings; warnings.filterwarnings('ignore')
+import warnings
+
+warnings.filterwarnings("ignore")
 
 df_gas = load_gasoline_nir()
-X_gas = df_gas.drop(columns='octane').values
-y_gas = df_gas['octane'].values
+X_gas = df_gas.drop(columns="octane").values
+y_gas = df_gas["octane"].values
 wavelengths = np.arange(900, 1702, 2)  # 401 wavelengths, 900–1700 nm
 
 print(f"Gasoline NIR: {X_gas.shape[0]} samples × {X_gas.shape[1]} wavelength channels")
 print(f"p = {X_gas.shape[1]} > n = {X_gas.shape[0]}  → classic p >> n chemometrics problem")
 print(f"Octane range: {y_gas.min():.1f} – {y_gas.max():.1f}")
-print(f"Mean absolute inter-feature correlation: "
-      f"{np.abs(np.corrcoef(X_gas.T) - np.eye(X_gas.shape[1])).mean():.3f}")
+print(
+    f"Mean absolute inter-feature correlation: "
+    f"{np.abs(np.corrcoef(X_gas.T) - np.eye(X_gas.shape[1])).mean():.3f}"
+)
 
 # %% [markdown]
 # ### 4.1 The spectral data and its PCA structure
@@ -431,30 +457,34 @@ print(f"Mean absolute inter-feature correlation: "
 fig, axes = plt.subplots(1, 2, figsize=(13, 4))
 
 for i in range(len(X_gas)):
-    axes[0].plot(wavelengths, X_gas[i], alpha=0.2, color='steelblue', linewidth=0.8)
-axes[0].set_xlabel('Wavelength (nm)')
-axes[0].set_ylabel('NIR absorbance')
-axes[0].set_title('Raw NIR spectra of 60 gasoline samples')
+    axes[0].plot(wavelengths, X_gas[i], alpha=0.2, color="steelblue", linewidth=0.8)
+axes[0].set_xlabel("Wavelength (nm)")
+axes[0].set_ylabel("NIR absorbance")
+axes[0].set_title("Raw NIR spectra of 60 gasoline samples")
 
 # Cumulative variance explained
 pca_gas = PCA(random_state=42).fit(StandardScaler().fit_transform(X_gas))
 cumvar_gas = np.cumsum(pca_gas.explained_variance_ratio_) * 100
 axes[1].plot(range(1, len(cumvar_gas) + 1), cumvar_gas)
 for n_comp, threshold in zip([1, 3, 5], [71.7, 93.7, 98.3]):
-    axes[1].axhline(threshold, color='grey', linestyle=':', linewidth=0.8)
-    axes[1].annotate(f'PC 1–{n_comp}: {threshold:.0f}%',
-                     xy=(n_comp + 0.5, threshold - 4), fontsize=8, color='red')
-    axes[1].axvline(n_comp, color='red', linestyle=':', linewidth=0.8)
+    axes[1].axhline(threshold, color="grey", linestyle=":", linewidth=0.8)
+    axes[1].annotate(
+        f"PC 1–{n_comp}: {threshold:.0f}%",
+        xy=(n_comp + 0.5, threshold - 4),
+        fontsize=8,
+        color="red",
+    )
+    axes[1].axvline(n_comp, color="red", linestyle=":", linewidth=0.8)
 axes[1].set_xlim(0, 20)
-axes[1].set_xlabel('Number of components')
-axes[1].set_ylabel('Cumulative explained variance (%)')
-axes[1].set_title('Variance compressed into very few PCs')
+axes[1].set_xlabel("Number of components")
+axes[1].set_ylabel("Cumulative explained variance (%)")
+axes[1].set_title("Variance compressed into very few PCs")
 plt.tight_layout()
 plt.show()
 
 print(f"3 PCs explain {cumvar_gas[2]:.1f}% of total spectral variance")
 print(f"5 PCs explain {cumvar_gas[4]:.1f}% of total spectral variance")
-print(f"Compare with Madelon: PC 1–5 explain only 4.2% of total variance")
+print("Compare with Madelon: PC 1–5 explain only 4.2% of total variance")
 
 # %% [markdown]
 # ### 4.2 Eigenspectra — PCA components map to real chemistry
@@ -468,13 +498,14 @@ print(f"Compare with Madelon: PC 1–5 explain only 4.2% of total variance")
 # %%
 fig, axes = plt.subplots(1, 3, figsize=(14, 3.5))
 for i, ax in enumerate(axes):
-    ax.plot(wavelengths, pca_gas.components_[i], color='darkred', linewidth=1)
-    ax.axhline(0, color='k', linewidth=0.5)
-    ax.set_xlabel('Wavelength (nm)')
-    ax.set_title(f'Eigenspectrum PC {i+1}  '
-                 f'({pca_gas.explained_variance_ratio_[i]*100:.1f}% variance)')
-    ax.set_ylabel('Loading')
-plt.suptitle('Principal components of gasoline NIR spectra', fontsize=11)
+    ax.plot(wavelengths, pca_gas.components_[i], color="darkred", linewidth=1)
+    ax.axhline(0, color="k", linewidth=0.5)
+    ax.set_xlabel("Wavelength (nm)")
+    ax.set_title(
+        f"Eigenspectrum PC {i + 1}  ({pca_gas.explained_variance_ratio_[i] * 100:.1f}% variance)"
+    )
+    ax.set_ylabel("Loading")
+plt.suptitle("Principal components of gasoline NIR spectra", fontsize=11)
 plt.tight_layout()
 plt.show()
 
@@ -493,32 +524,34 @@ from sklearn.neighbors import KNeighborsRegressor
 from sklearn.metrics import r2_score
 
 # Manual Leave-One-Out cross-validation
-preds_gas = {method: [] for method in
-             ['OLS (401 features)', 'PCR(3)', 'PCR(5)', 'Ridge', 'KNN(3)']}
+preds_gas = {method: [] for method in ["OLS (401 features)", "PCR(3)", "PCR(5)", "Ridge", "KNN(3)"]}
 
 for i in range(len(X_gas)):
-    mask = np.ones(len(X_gas), dtype=bool); mask[i] = False
+    mask = np.ones(len(X_gas), dtype=bool)
+    mask[i] = False
     sc_g = StandardScaler().fit(X_gas[mask])
     Xtr_g, Xte_g = sc_g.transform(X_gas[mask]), sc_g.transform(X_gas[[i]])
-    y_tr_g = y_gas[mask]; y_te_g = y_gas[i:i+1]
+    y_tr_g = y_gas[mask]
+    y_te_g = y_gas[i : i + 1]
 
-    preds_gas['OLS (401 features)'].append(
-        LinearRegression().fit(Xtr_g, y_tr_g).predict(Xte_g)[0])
-    for n, key in [(3, 'PCR(3)'), (5, 'PCR(5)')]:
+    preds_gas["OLS (401 features)"].append(LinearRegression().fit(Xtr_g, y_tr_g).predict(Xte_g)[0])
+    for n, key in [(3, "PCR(3)"), (5, "PCR(5)")]:
         pca_g = PCA(n, random_state=42).fit(Xtr_g)
         preds_gas[key].append(
-            LinearRegression().fit(pca_g.transform(Xtr_g), y_tr_g)
-                              .predict(pca_g.transform(Xte_g))[0])
+            LinearRegression()
+            .fit(pca_g.transform(Xtr_g), y_tr_g)
+            .predict(pca_g.transform(Xte_g))[0]
+        )
     from sklearn.linear_model import Ridge as _R
-    preds_gas['Ridge'].append(_R(alpha=0.01).fit(Xtr_g, y_tr_g).predict(Xte_g)[0])
-    preds_gas['KNN(3)'].append(
-        KNeighborsRegressor(3).fit(Xtr_g, y_tr_g).predict(Xte_g)[0])
+
+    preds_gas["Ridge"].append(_R(alpha=0.01).fit(Xtr_g, y_tr_g).predict(Xte_g)[0])
+    preds_gas["KNN(3)"].append(KNeighborsRegressor(3).fit(Xtr_g, y_tr_g).predict(Xte_g)[0])
 
 print("Leave-one-out cross-validation on gasoline octane prediction:")
 print(f"{'Method':<22}  {'R²':>7}  {'MAE (octane pts)':>18}")
-print('-' * 55)
+print("-" * 55)
 for method, pred in preds_gas.items():
-    r2  = r2_score(y_gas, pred)
+    r2 = r2_score(y_gas, pred)
     mae = np.mean(np.abs(y_gas - pred))
     print(f"{method:<22}  {r2:>7.4f}  {mae:>18.3f}")
 
@@ -592,36 +625,46 @@ print("  3. Robustness to instrument transfer (different spectrometer)")
 n_comp_search = [5, 10, 15, 20, 25, 30, 40, 50]
 train_scores, val_scores = validation_curve(
     make_pipeline(PCA(random_state=42), KNeighborsClassifier(n_neighbors=3)),
-    X_noisy_5, y_dig,
-    param_name='pca__n_components',
+    X_noisy_5,
+    y_dig,
+    param_name="pca__n_components",
     param_range=n_comp_search,
     cv=cv,
-    scoring='accuracy',
+    scoring="accuracy",
 )
 
 fig, ax = plt.subplots(figsize=(8, 4))
-ax.plot(n_comp_search, train_scores.mean(axis=1), marker='o', label='Train accuracy')
-ax.fill_between(n_comp_search,
-                train_scores.mean(axis=1) - train_scores.std(axis=1),
-                train_scores.mean(axis=1) + train_scores.std(axis=1), alpha=0.15)
-ax.plot(n_comp_search, val_scores.mean(axis=1), marker='s', label='Val accuracy')
-ax.fill_between(n_comp_search,
-                val_scores.mean(axis=1) - val_scores.std(axis=1),
-                val_scores.mean(axis=1) + val_scores.std(axis=1), alpha=0.15)
+ax.plot(n_comp_search, train_scores.mean(axis=1), marker="o", label="Train accuracy")
+ax.fill_between(
+    n_comp_search,
+    train_scores.mean(axis=1) - train_scores.std(axis=1),
+    train_scores.mean(axis=1) + train_scores.std(axis=1),
+    alpha=0.15,
+)
+ax.plot(n_comp_search, val_scores.mean(axis=1), marker="s", label="Val accuracy")
+ax.fill_between(
+    n_comp_search,
+    val_scores.mean(axis=1) - val_scores.std(axis=1),
+    val_scores.mean(axis=1) + val_scores.std(axis=1),
+    alpha=0.15,
+)
 ax.axhline(
     cross_val_score(KNeighborsClassifier(3), X_noisy_5, y_dig, cv=cv).mean(),
-    color='red', linestyle='--', label='Raw 64 pixels'
+    color="red",
+    linestyle="--",
+    label="Raw 64 pixels",
 )
-ax.set_xlabel('Number of PCA components')
-ax.set_ylabel('Accuracy')
-ax.set_title('Validation curve: PCA(n_components) + KNN on noisy digits (σ=5)')
+ax.set_xlabel("Number of PCA components")
+ax.set_ylabel("Accuracy")
+ax.set_title("Validation curve: PCA(n_components) + KNN on noisy digits (σ=5)")
 ax.legend()
 plt.tight_layout()
 plt.show()
 
 best_n_cv = n_comp_search[np.argmax(val_scores.mean(axis=1))]
-print(f"Optimal n_components by CV: {best_n_cv}  "
-      f"(val accuracy: {val_scores.mean(axis=1).max():.3f})")
+print(
+    f"Optimal n_components by CV: {best_n_cv}  (val accuracy: {val_scores.mean(axis=1).max():.3f})"
+)
 
 # %% [markdown]
 # <div class="alert alert-success">

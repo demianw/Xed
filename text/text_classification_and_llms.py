@@ -32,15 +32,15 @@
 
 # ## 1. Download and import the dataset.
 
- # %% id="qwKHxrqb4FN5"
- 
+# %% id="qwKHxrqb4FN5"
+
 # %% id="HheXxTsD46Po"
-from datasets import load_dataset
 import pandas as pd
+from datasets import load_dataset
 
 # %% id="3QLS2eTq4GqR"
 data = load_dataset("rotten_tomatoes")
-train_data = pd.DataFrame(data['train'])
+train_data = pd.DataFrame(data["train"])
 
 # %% [markdown] id="Vt7Rs8-MAqfG"
 # ## 2. Explore the data
@@ -65,7 +65,7 @@ train_data.iloc[:5].text
 vectorizer = TfidfVectorizer()
 pd.DataFrame(
     vectorizer.fit_transform(train_data.iloc[:5].text).todense(),
-    columns=vectorizer.get_feature_names_out()
+    columns=vectorizer.get_feature_names_out(),
 )
 
 # %% [markdown] id="VeZ15xNaB6T9"
@@ -74,15 +74,17 @@ pd.DataFrame(
 # Use the Logistic regression classifier and the TfidfVectorizer to classify the *reviews*.
 
 # %% id="5HbtEZnUAxNX"
-from sklearn.feature_extraction.text import TfidfVectorizer
+# %% id="k-Wf_M_ins0k"
+# %% [markdown] id="zOYW8dJkCqmC"
+# ## 5. Large language models !
+#
+# Now we will use a large language model [bert](https://en.wikipedia.org/wiki/BERT_(language_model))
+# as a feature extractor
+# %% id="hcztM8dy5oNW"
+from sentence_transformers import SentenceTransformer
 from sklearn import linear_model
-from sklearn.pipeline import make_pipeline
-from sklearn.model_selection import (
-    LearningCurveDisplay, StratifiedKFold, train_test_split
-)
 
 # %% id="2DoA3t_OB3vv"
-
 # %% [markdown] id="_KLPXcyyneGL"
 # ## 4.1 Dimensionality reduction on TF-IDF features
 #
@@ -95,23 +97,14 @@ from sklearn.model_selection import (
 # number of components. Does compression help or hurt accuracy?
 #
 #
-
 # %% id="oPArG-cwnsu_"
 from sklearn.decomposition import PCA, KernelPCA
-
-# %% id="k-Wf_M_ins0k"
-
-# %% [markdown] id="zOYW8dJkCqmC"
-# ## 5. Large language models !
-#
-# Now we will use a large language model [bert](https://en.wikipedia.org/wiki/BERT_(language_model))
-# as a feature extractor
-
-# %% id="hcztM8dy5oNW"
-from sentence_transformers import SentenceTransformer
+from sklearn.feature_extraction.text import TfidfVectorizer
+from sklearn.model_selection import LearningCurveDisplay, StratifiedKFold, train_test_split
+from sklearn.pipeline import make_pipeline
 
 # Load model
-model = SentenceTransformer('sentence-transformers/all-mpnet-base-v2')
+model = SentenceTransformer("sentence-transformers/all-mpnet-base-v2")
 train_embeddings = model.encode(data["train"]["text"], show_progress_bar=True)
 
 # %% [markdown] id="BJecahf9C0tU"
@@ -128,20 +121,16 @@ train_embeddings = model.encode(data["train"]["text"], show_progress_bar=True)
 # We will use the test data for convenience as it has only around 1000 records
 
 # %% id="nDuW0ExY-dIx"
-from transformers import pipeline as tpipeline
-from transformers.pipelines.pt_utils import KeyDataset
 import numpy as np
 from tqdm import tqdm
+from transformers import pipeline as tpipeline
+from transformers.pipelines.pt_utils import KeyDataset
 
 # %% id="_iKtCUkE9-gM"
 # Load our model, if you specify device="cuda:0" it will
 # consume the free computing from google very fast
 # if not change device="cpu"
-pipe = tpipeline(
-    "text2text-generation",
-    model="google/flan-t5-small",
-    device="cuda:0"
-)
+pipe = tpipeline("text2text-generation", model="google/flan-t5-small", device="cuda:0")
 
 # %% id="uYDMbfnkGiE4"
 # Store the data in a dataframe
@@ -150,8 +139,8 @@ data_df = pd.DataFrame(data["test"])
 
 # %% id="I-ryGvFv-XTE"
 # Set up the prompt that we will ask to the T5 llm. How are you going to ask ?
-prompt = "" # Ask here if the text is positive or negative, try different formulations
-llm_response = data.map(lambda example: {"t5": prompt + example['text']})
+prompt = ""  # Ask here if the text is positive or negative, try different formulations
+llm_response = data.map(lambda example: {"t5": prompt + example["text"]})
 
 # %% id="GYCMdj01-sku"
 # Run the prompt for every record and store the result

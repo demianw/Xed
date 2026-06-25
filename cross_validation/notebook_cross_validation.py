@@ -67,6 +67,7 @@ y
 
 # %%
 import numpy as np
+
 rng = np.random.RandomState(0)
 
 permutation = rng.permutation(len(X))
@@ -101,8 +102,9 @@ for fold in range(k):
 
 # %%
 import matplotlib.pyplot as plt
+
 # %matplotlib inline
-plt.matshow(masks, cmap='gray_r')
+plt.matshow(masks, cmap="gray_r")
 
 # %% [markdown]
 # And now let's look a the scores we computed:
@@ -120,9 +122,10 @@ print(np.mean(scores))
 
 # %%
 from sklearn.model_selection import cross_val_score
+
 scores = cross_val_score(classifier, X, y)
-print('Scores on each CV fold: %s' % scores)
-print('Mean score: %0.3f' % np.mean(scores))
+print(f"Scores on each CV fold: {scores}")
+print(f"Mean score: {np.mean(scores):.3f}")
 
 # %% [markdown]
 # As you can see, the function uses **five** folds by default (changed from 3 in scikit-learn 0.22).
@@ -155,6 +158,7 @@ for train, test in cv.split(iris.data, iris.target):
 # As you can see, there are a couple of samples from the beginning, then from the middle, and then from the end, in each of the folds.
 # This way, the class ratios are preserved. Let's visualize the split:
 
+
 # %%
 def plot_cv(cv, features, labels):
     masks = []
@@ -162,8 +166,9 @@ def plot_cv(cv, features, labels):
         mask = np.zeros(len(labels), dtype=bool)
         mask[test] = 1
         masks.append(mask)
-    
-    plt.matshow(masks, cmap='gray_r')
+
+    plt.matshow(masks, cmap="gray_r")
+
 
 # %%
 plot_cv(StratifiedKFold(n_splits=5), iris.data, iris.target)
@@ -184,19 +189,19 @@ plot_cv(KFold(n_splits=10), iris.data, iris.target)
 # Another helpful cross-validation generator is ``ShuffleSplit``. This generator simply splits of a random portion of the data repeatedly. This allows the user to specify the number of repetitions and the training set size independently:
 
 # %%
-plot_cv(ShuffleSplit(n_splits=5, test_size=.2), iris.data, iris.target)
+plot_cv(ShuffleSplit(n_splits=5, test_size=0.2), iris.data, iris.target)
 
 # %% [markdown]
 # If you want a more robust estimate, you can just increase the number of splits:
 
 # %%
-plot_cv(ShuffleSplit(n_splits=20, test_size=.2), iris.data, iris.target)
+plot_cv(ShuffleSplit(n_splits=20, test_size=0.2), iris.data, iris.target)
 
 # %% [markdown]
 # You can use all of these cross-validation generators with the `cross_val_score` method:
 
 # %%
-cv = ShuffleSplit(n_splits=5, test_size=.2)
+cv = ShuffleSplit(n_splits=5, test_size=0.2)
 cross_val_score(classifier, X, y, cv=cv)
 
 # %% [markdown]

@@ -15,14 +15,15 @@
 # %% id="KjAyiNwsTLMC"
 
 # %% id="16wUQ_vATLMD"
-import os, sys, subprocess
+import os
+import subprocess
+import sys
 
 # Install the course package and all pinned dependencies.
 # In GitHub Actions CI this step is skipped (pre-installed via pip install -e .[dev]).
-if not os.environ.get('CI'):
+if not os.environ.get("CI"):
     subprocess.run(
-        [sys.executable, '-m', 'pip', 'install', '-q',
-         'git+https://github.com/demianw/Xed.git'],
+        [sys.executable, "-m", "pip", "install", "-q", "git+https://github.com/demianw/Xed.git"],
         check=True,
     )
 
@@ -75,11 +76,12 @@ data.head()
 
 # %% id="6wWnT8_bTLME" outputId="6c0385a6-d314-46f3-9df5-5e9cc7182477"
 from sklearn.model_selection import train_test_split
+
 target = data["SalePrice"]
 features = data.drop(columns="SalePrice")
 
 selection_features, evaluation_features, selection_target, evaluation_target = train_test_split(
-    features, target, test_size=.2
+    features, target, test_size=0.2
 )
 selection_target.shape
 

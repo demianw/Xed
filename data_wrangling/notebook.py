@@ -13,14 +13,15 @@
 # ---
 
 # %%
-import os, sys, subprocess
+import os
+import subprocess
+import sys
 
 # Install the course package and all pinned dependencies.
 # In GitHub Actions CI this step is skipped (pre-installed via pip install -e .[dev]).
-if not os.environ.get('CI'):
+if not os.environ.get("CI"):
     subprocess.run(
-        [sys.executable, '-m', 'pip', 'install', '-q',
-         'git+https://github.com/demianw/Xed.git'],
+        [sys.executable, "-m", "pip", "install", "-q", "git+https://github.com/demianw/Xed.git"],
         check=True,
     )
 
@@ -107,10 +108,12 @@ pd.options.display.max_rows = 8
 # We can create a pandas Dataframe and specify the index and columns to use.
 
 # %%
-data = {'country': ['Belgium', 'France', 'Germany', 'Netherlands', 'United Kingdom'],
-        'population': [11.3, 64.3, 81.3, 16.9, 64.9],
-        'area': [30510, 671308, 357050, 41526, 244820],
-        'capital': ['Brussels', 'Paris', 'Berlin', 'Amsterdam', 'London']}
+data = {
+    "country": ["Belgium", "France", "Germany", "Netherlands", "United Kingdom"],
+    "population": [11.3, 64.3, 81.3, 16.9, 64.9],
+    "area": [30510, 671308, 357050, 41526, 244820],
+    "capital": ["Brussels", "Paris", "Berlin", "Amsterdam", "London"],
+}
 df_countries = pd.DataFrame(data)
 df_countries
 
@@ -152,10 +155,10 @@ df_countries.dtypes
 # We will define a set of 1D NumPy arrays containing the data that we will work with.
 
 # %%
-country_name = ['Austria', 'Iran, Islamic Rep.', 'France']
-country_code = ['AUT', 'IRN', 'FRA']
+country_name = ["Austria", "Iran, Islamic Rep.", "France"]
+country_code = ["AUT", "IRN", "FRA"]
 gdp_2015 = [1349034029453.37, 385874474398.59, 2438207896251.84]
-gdp_2017 = [1532397555.55556, 439513511620.591,2582501307216.42]
+gdp_2017 = [1532397555.55556, 439513511620.591, 2582501307216.42]
 
 # %% [markdown]
 # * Create a Python dictionary where the keys will be the name of the columns and the values will be the corresponding Python list.
@@ -181,10 +184,10 @@ gdp_2017 = [1532397555.55556, 439513511620.591,2582501307216.42]
 df_countries
 
 # %%
-df_countries.loc[:, 'population']
+df_countries.loc[:, "population"]
 
 # %%
-population = df_countries.loc[:, 'population']
+population = df_countries.loc[:, "population"]
 
 # %% [markdown]
 # We can check that we manipulate a Pandas Series
@@ -274,48 +277,50 @@ no2.info()
 # We will first select data from the dataframe selecting by **label**.
 
 # %%
-data = {'country': ['Belgium', 'France', 'Germany', 'Netherlands', 'United Kingdom'],
-        'population': [11.3, 64.3, 81.3, 16.9, 64.9],
-        'area': [30510, 671308, 357050, 41526, 244820],
-        'capital': ['Brussels', 'Paris', 'Berlin', 'Amsterdam', 'London']}
-df_countries = pd.DataFrame(data).set_index('country')
+data = {
+    "country": ["Belgium", "France", "Germany", "Netherlands", "United Kingdom"],
+    "population": [11.3, 64.3, 81.3, 16.9, 64.9],
+    "area": [30510, 671308, 357050, 41526, 244820],
+    "capital": ["Brussels", "Paris", "Berlin", "Amsterdam", "London"],
+}
+df_countries = pd.DataFrame(data).set_index("country")
 df_countries
 
 # %% [markdown]
 # The syntax to select by label is `.loc['row_name', 'col_name']`. Therefore, we can get a row of the dataframe by indicating the name of the index to select.
 
 # %%
-df_countries.loc['France', :]
+df_countries.loc["France", :]
 
 # %% [markdown]
 # Similarly, we can get a column of the dataframe by indicating the name of the column.
 
 # %%
-df_countries.loc[:, 'area']
+df_countries.loc[:, "area"]
 
 # %% [markdown]
 # Specifying both index and column name, we will get the intersection of the row and the column.
 
 # %%
-df_countries.loc['France', 'area']
+df_countries.loc["France", "area"]
 
 # %% [markdown]
 # We can get several columns by passing a list of the columns to be selected.
 
 # %%
-x = df_countries.loc['France', ['area', 'population']]
+x = df_countries.loc["France", ["area", "population"]]
 
 # %% [markdown]
 # This is the exact same behavior with the index for the rows.
 
 # %%
-df_countries.loc[['France', 'Belgium'], ['area', 'population']]
+df_countries.loc[["France", "Belgium"], ["area", "population"]]
 
 # %% [markdown]
 # You can go further and slice a portion of the dataframe.
 
 # %%
-df_countries.loc['France':'Netherlands', :]
+df_countries.loc["France":"Netherlands", :]
 
 # %% [markdown]
 # Note that in this case, the first and last item of the slice are selected.
@@ -327,11 +332,13 @@ df_countries.loc['France':'Netherlands', :]
 # Sometimes, it is handy to select a portion of the data given the row and column indices number. We can this indexing by **position**.
 
 # %%
-data = {'country': ['Belgium', 'France', 'Germany', 'Netherlands', 'United Kingdom'],
-        'population': [11.3, 64.3, 81.3, 16.9, 64.9],
-        'area': [30510, 671308, 357050, 41526, 244820],
-        'capital': ['Brussels', 'Paris', 'Berlin', 'Amsterdam', 'London']}
-df_countries = pd.DataFrame(data).set_index('country')
+data = {
+    "country": ["Belgium", "France", "Germany", "Netherlands", "United Kingdom"],
+    "population": [11.3, 64.3, 81.3, 16.9, 64.9],
+    "area": [30510, 671308, 357050, 41526, 244820],
+    "capital": ["Brussels", "Paris", "Berlin", "Amsterdam", "London"],
+}
+df_countries = pd.DataFrame(data).set_index("country")
 df_countries
 
 # %% [markdown]
@@ -371,27 +378,29 @@ df_countries.iloc[1:3, 0:2]
 # ### 3.3 Use the pandas shortcut
 
 # %%
-data = {'country': ['Belgium', 'France', 'Germany', 'Netherlands', 'United Kingdom'],
-        'population': [11.3, 64.3, 81.3, 16.9, 64.9],
-        'area': [30510, 671308, 357050, 41526, 244820],
-        'capital': ['Brussels', 'Paris', 'Berlin', 'Amsterdam', 'London']}
-df_countries = pd.DataFrame(data).set_index('country')
+data = {
+    "country": ["Belgium", "France", "Germany", "Netherlands", "United Kingdom"],
+    "population": [11.3, 64.3, 81.3, 16.9, 64.9],
+    "area": [30510, 671308, 357050, 41526, 244820],
+    "capital": ["Brussels", "Paris", "Berlin", "Amsterdam", "London"],
+}
+df_countries = pd.DataFrame(data).set_index("country")
 df_countries
 
 # %% [markdown]
 # Pandas provides a shortcut to select some part of the data.
 
 # %%
-df_countries['population']
+df_countries["population"]
 
 # %%
-df_countries[['area', 'capital']]
+df_countries[["area", "capital"]]
 
 # %%
 df_countries[2:5]
 
 # %%
-df_countries['Germany':'United Kingdom']
+df_countries["Germany":"United Kingdom"]
 
 # %% [markdown]
 # You don't need to use `loc` and `iloc`. The selection rules are:
@@ -405,21 +414,21 @@ df_countries['Germany':'United Kingdom']
 # ### 3.4 Boolean indexing (filtering)
 
 # %% [markdown]
-# Often, you want to select rows based on a certain condition. This can be done with 'boolean indexing' (like a where clause in SQL) and comparable to numpy. 
+# Often, you want to select rows based on a certain condition. This can be done with 'boolean indexing' (like a where clause in SQL) and comparable to numpy.
 #
 # The indexer (or boolean mask) should be 1-dimensional and the same length as the thing being indexed.
 
-# %% run_control={"frozen": false, "read_only": false}
-df_countries['population'] > 60
+# %%
+df_countries["population"] > 60
 
 # %%
-mask_pop_above_60 = df_countries['population'] > 60
+mask_pop_above_60 = df_countries["population"] > 60
 
 # %% [markdown]
 # We can then use this mask to index a series or a DataFrame.
 
 # %%
-population = df_countries['population']
+population = df_countries["population"]
 
 # %%
 population.loc[mask_pop_above_60]
@@ -453,14 +462,14 @@ df.head()
 # Pandas provides an easy and fast way to explore data. Let's explore the `titanic` data set.
 
 # %%
-df = df.set_index('Name')
+df = df.set_index("Name")
 df.head()
 
 # %% [markdown]
 # We will select the `Age` column and compute couple of statistic.
 
 # %%
-age = df['Age']
+age = df["Age"]
 age
 
 # %%
@@ -529,9 +538,13 @@ age.hist(bins=100)
 # %% [markdown]
 # ### Some 'theory': the groupby operation (split-apply-combine)
 
-# %% run_control={"frozen": false, "read_only": false}
-df = pd.DataFrame({'key':['A','B','C','A','B','C','A','B','C'],
-                   'data': [0, 5, 10, 5, 10, 15, 10, 15, 20]})
+# %%
+df = pd.DataFrame(
+    {
+        "key": ["A", "B", "C", "A", "B", "C", "A", "B", "C"],
+        "data": [0, 5, 10, 5, 10, 15, 10, 15, 20],
+    }
+)
 df
 
 # %% [markdown]
@@ -540,17 +553,17 @@ df
 # %% [markdown]
 # When analyzing data, you often calculate summary statistics (aggregations like the mean, max, ...). As we have seen before, we can easily calculate such a statistic for a Series or column using one of the many available methods. For example:
 
-# %% run_control={"frozen": false, "read_only": false}
-df['data'].sum()
+# %%
+df["data"].sum()
 
 # %% [markdown]
 # However, in many cases your data has certain groups in it, and in that case, you may want to calculate this statistic for each of the groups.
 #
 # For example, in the above dataframe `df`, there is a column 'key' which has three possible values: 'A', 'B' and 'C'. When we want to calculate the sum for each of those groups, we could do the following:
 
-# %% run_control={"frozen": false, "read_only": false}
-for key in ['A', 'B', 'C']:
-    print(key, df[df['key'] == key]['data'].sum())
+# %%
+for key in ["A", "B", "C"]:
+    print(key, df[df["key"] == key]["data"].sum())
 
 # %% [markdown]
 # This becomes very verbose when having multiple groups. You could make the above a bit easier by looping over the different values, but still, it is not very convenient to work with.
@@ -583,20 +596,20 @@ for key in ['A', 'B', 'C']:
 #
 # pandas provides the `groupby` method to do exactly this:
 
-# %% run_control={"frozen": false, "read_only": false}
-df.groupby('key').sum()
-
-# %% run_control={"frozen": false, "read_only": false} slideshow={"slide_type": "subslide"}
-df.groupby('key').aggregate([np.sum, np.median])  # 'sum'
-
-# %% [markdown]
-# And many more methods are available. 
-
-# %% run_control={"frozen": false, "read_only": false}
-df.groupby('key')['data'].sum()
+# %%
+df.groupby("key").sum()
 
 # %%
-for group_name, group_df in df.groupby('key'):
+df.groupby("key").aggregate([np.sum, np.median])  # 'sum'
+
+# %% [markdown]
+# And many more methods are available.
+
+# %%
+df.groupby("key")["data"].sum()
+
+# %%
+for group_name, group_df in df.groupby("key"):
     print(group_name)
     print(group_df)
 
@@ -606,18 +619,18 @@ for group_name, group_df in df.groupby('key'):
 # %% [markdown]
 # We go back to the titanic passengers survival data:
 
-# %% run_control={"frozen": false, "read_only": false}
-df = load_titanic(
-df = df.set_index('Name')
+# %%
+df = load_titanic()
+df = df.set_index("Name")
 
-# %% run_control={"frozen": false, "read_only": false}
+# %%
 df.head()
 
 # %% [markdown]
 # * Using `groupby()`, calculate the average age for each sex.</li>
 #
 
-# %% clear_cell=true run_control={"frozen": false, "read_only": false}
+# %%
 # # %cat solutions/14_solutions.py
 
 # %% [markdown]
@@ -652,14 +665,17 @@ df.head()
 
 # %%
 # series
-population = pd.Series({'Germany': 81.3, 'Belgium': 11.3, 'France': 64.3, 
-                        'United Kingdom': 64.9, 'Netherlands': 16.9})
+population = pd.Series(
+    {"Germany": 81.3, "Belgium": 11.3, "France": 64.3, "United Kingdom": 64.9, "Netherlands": 16.9}
+)
 
 # dataframe
-data = {'country': ['Belgium', 'France', 'Germany', 'Netherlands', 'United Kingdom'],
-        'population': [11.3, 64.3, 81.3, 16.9, 64.9],
-        'area': [30510, 671308, 357050, 41526, 244820],
-        'capital': ['Brussels', 'Paris', 'Berlin', 'Amsterdam', 'London']}
+data = {
+    "country": ["Belgium", "France", "Germany", "Netherlands", "United Kingdom"],
+    "population": [11.3, 64.3, 81.3, 16.9, 64.9],
+    "area": [30510, 671308, 357050, 41526, 244820],
+    "capital": ["Brussels", "Paris", "Berlin", "Amsterdam", "London"],
+}
 countries = pd.DataFrame(data)
 countries
 
@@ -667,10 +683,17 @@ countries
 # Assume we have some similar data as in countries, but for a set of different countries:
 
 # %%
-data = {'country': ['Nigeria', 'Rwanda', 'Egypt', 'Morocco', ],
-        'population': [182.2, 11.3, 94.3, 34.4],
-        'area': [923768, 26338 , 1010408, 710850],
-        'capital': ['Abuja', 'Kigali', 'Cairo', 'Rabat']}
+data = {
+    "country": [
+        "Nigeria",
+        "Rwanda",
+        "Egypt",
+        "Morocco",
+    ],
+    "population": [182.2, 11.3, 94.3, 34.4],
+    "area": [923768, 26338, 1010408, 710850],
+    "capital": ["Abuja", "Kigali", "Cairo", "Rabat"],
+}
 countries_africa = pd.DataFrame(data)
 countries_africa
 
@@ -690,7 +713,7 @@ pd.concat([countries, countries_africa], ignore_index=True)
 # When the two dataframes don't have the same set of columns, by default missing values get introduced:
 
 # %%
-pd.concat([countries_africa[['country', 'capital']], countries], ignore_index=True, sort=False)
+pd.concat([countries_africa[["country", "capital"]], countries], ignore_index=True, sort=False)
 
 # %% [markdown]
 # ## 7.2 Combining columns instead of rows
@@ -699,10 +722,12 @@ pd.concat([countries_africa[['country', 'capital']], countries], ignore_index=Tr
 # Assume we have another DataFrame for the same countries, but with some additional statistics:
 
 # %%
-data = {'country': ['Belgium', 'France', 'Netherlands'],
-        'GDP': [496477, 2650823, 820726],
-        'area': [8.0, 9.9, 5.7]}
-country_economics = pd.DataFrame(data).set_index('country')
+data = {
+    "country": ["Belgium", "France", "Netherlands"],
+    "GDP": [496477, 2650823, 820726],
+    "area": [8.0, 9.9, 5.7],
+}
+country_economics = pd.DataFrame(data).set_index("country")
 country_economics
 
 # %%
@@ -712,7 +737,7 @@ pd.concat([countries, country_economics], axis=1)
 # `pd.concat` matches the different objects based on the index:
 
 # %%
-countries2 = countries.set_index('country')
+countries2 = countries.set_index("country")
 
 # %%
 countries2
@@ -721,7 +746,7 @@ countries2
 pd.concat([countries2, country_economics], axis=1, sort=False)
 
 # %% [markdown]
-# ### 7.3 Dataframe merging 
+# ### 7.3 Dataframe merging
 
 # %% [markdown]
 # Using `pd.concat` above, we combined datasets that had the same columns or the same index values. But, another typical case if where you want to add information of second dataframe to a first one based on one of the columns. That can be done with `pd.merge`.
@@ -730,8 +755,8 @@ pd.concat([countries2, country_economics], axis=1, sort=False)
 # Let's look again at the titanic passenger data, but taking a small subset of it to make the example easier to grasp:
 
 # %%
-df = load_titanic(
-df = df.loc[:9, ['Survived', 'Pclass', 'Sex', 'Age', 'Fare', 'Embarked']]
+df = load_titanic()
+df = df.loc[:9, ["Survived", "Pclass", "Sex", "Age", "Fare", "Embarked"]]
 
 # %%
 df
@@ -740,9 +765,13 @@ df
 # Assume we have another dataframe with more information about the 'Embarked' locations:
 
 # %%
-locations = pd.DataFrame({'Embarked': ['S', 'C', 'Q', 'N'],
-                          'City': ['Southampton', 'Cherbourg', 'Queenstown', 'New York City'],
-                          'Country': ['United Kindom', 'France', 'Ireland', 'United States']})
+locations = pd.DataFrame(
+    {
+        "Embarked": ["S", "C", "Q", "N"],
+        "City": ["Southampton", "Cherbourg", "Queenstown", "New York City"],
+        "Country": ["United Kindom", "France", "Ireland", "United States"],
+    }
+)
 
 # %%
 locations
@@ -751,7 +780,7 @@ locations
 # We now want to add those columns to the titanic dataframe, for which we can use `pd.merge`, specifying the column on which we want to merge the two datasets:
 
 # %%
-pd.merge(df, locations, on='Embarked', how='left')
+pd.merge(df, locations, on="Embarked", how="left")
 
 # %% [markdown]
 # In this case we use `how='left'` (a "left join") because we wanted to keep the original rows of df and only add matching values from locations to it. Other options are 'inner', 'outer' and 'right' (see the docs for more on this).
@@ -775,7 +804,7 @@ no2.index
 # Indexing a time series works with strings:
 
 # %%
-no2["2010-01-01 09:00": "2010-01-01 12:00"]
+no2["2010-01-01 09:00":"2010-01-01 12:00"]
 
 # %% [markdown] slideshow={"slide_type": "subslide"}
 # A nice feature is "partial string" indexing, so you don't need to provide the full datetime string.
@@ -784,7 +813,7 @@ no2["2010-01-01 09:00": "2010-01-01 12:00"]
 # E.g. all data of January up to March 2012:
 
 # %%
-no2['2012-01':'2012-03']
+no2["2012-01":"2012-03"]
 
 # %% [markdown] slideshow={"slide_type": "subslide"}
 # Time and date components can be accessed from the index:
@@ -813,26 +842,26 @@ no2.plot()
 no2.head()
 
 # %%
-no2.resample('D').mean().head()
+no2.resample("D").mean().head()
 
 # %% [markdown] slideshow={"slide_type": "subslide"}
 # Above I take the mean, but as with `groupby` I can also specify other methods:
 
 # %%
-no2.resample('D').max().head()
+no2.resample("D").max().head()
 
 # %% [markdown] slideshow={"slide_type": "skip"}
-# The string to specify the new time frequency: http://pandas.pydata.org/pandas-docs/dev/timeseries.html#offset-aliases  
+# The string to specify the new time frequency: http://pandas.pydata.org/pandas-docs/dev/timeseries.html#offset-aliases
 # These strings can also be combined with numbers, eg `'10D'`.
 
 # %% [markdown] slideshow={"slide_type": "subslide"}
 # Further exploring the data:
 
 # %%
-no2.resample('M').mean().plot() # 'A'
+no2.resample("M").mean().plot()  # 'A'
 
 # %% clear_cell=true slideshow={"slide_type": "subslide"}
-no2.loc['2009':, 'VERS'].resample('M').agg(['mean', 'median']).plot()
+no2.loc["2009":, "VERS"].resample("M").agg(["mean", "median"]).plot()
 
 # %% [markdown] slideshow={"slide_type": "subslide"}
 # ### 8.3 Exercise
