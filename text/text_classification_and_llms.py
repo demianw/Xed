@@ -49,7 +49,6 @@ warnings.filterwarnings("ignore")
 import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
-import seaborn as sns
 
 # %matplotlib inline
 
@@ -196,7 +195,6 @@ tfidf_df.iloc[:, :12]
 # beat.
 
 # %%
-from sklearn.feature_extraction.text import TfidfVectorizer
 from sklearn.linear_model import LogisticRegression
 from sklearn.pipeline import make_pipeline
 from sklearn.model_selection import train_test_split
@@ -318,7 +316,6 @@ plt.show()
 
 # %%
 from sentence_transformers import SentenceTransformer
-from sklearn import linear_model
 
 model = SentenceTransformer("sentence-transformers/all-mpnet-base-v2")
 train_embeddings = model.encode(data["train"]["text"], show_progress_bar=True)
@@ -392,8 +389,9 @@ if not os.environ.get("CI"):
 
     # Use a small subset for demo (not all 1000 test samples)
     n_demo = 50
+    test_subset = llm_response["test"].select(range(n_demo))
     y_pred = []
-    for output in tqdm(pipe(KeyDataset(llm_response["test"], "t5"))):
+    for output in tqdm(pipe(KeyDataset(test_subset, "t5"))):
         text = output[0]["generated_text"].lower().strip()
         if "pos" in text:
             y_pred.append(1)
@@ -418,7 +416,10 @@ else:
 #   <li>What are the trade-offs between TF-IDF, BERT embeddings, and zero-shot prompting?</li>
 # </ul>
 # </div>
-#
+
+# %%
+# Your code here
+
 # %% [markdown]
 # ---
 # ## Summary

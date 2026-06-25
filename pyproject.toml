@@ -114,6 +114,7 @@ ignore = ["E402", "E501", "E703", "F401", "F811", "F821", "F841", "E741"]
 "dimensionality_reduction/notebook*.py" = ["I001"]
 "data_wrangling/notebook*.py"        = ["I001", "E711"]
 "movie lens/notebook*.py"            = ["I001"]
+"text/text_classification*.py"       = ["I001"]
 
 [tool.ruff.lint.isort]
 known-first-party = ["xed"]
