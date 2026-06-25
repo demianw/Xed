@@ -110,3 +110,18 @@ known-first-party = ["xed"]
 [tool.ruff.format]
 quote-style  = "double"
 indent-style = "space"
+
+# ---------------------------------------------------------------------------
+# uv scripts  (run with: uv run <script-name>)
+# Mirrors the hatch scripts above so the repo works with both tools.
+# ---------------------------------------------------------------------------
+[tool.uv.scripts]
+lint       = "ruff check ."
+lint-fix   = "ruff check --fix ."
+fmt-check  = "ruff format --check ."
+fmt        = "ruff format ."
+convert    = "python scripts/convert_notebooks.py"
+sync-check = "python scripts/convert_notebooks.py --check"
+all-checks = { cmd = ["bash", "-c",
+    "ruff check . && ruff format --check . && python scripts/convert_notebooks.py --check"
+] }
