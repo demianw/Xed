@@ -351,6 +351,27 @@ print(f"Train embeddings shape: {train_embeddings.shape}")
 # produce the answer directly. The model's only "knowledge" of the task comes
 # from the wording of the prompt.
 #
+# ### What is an "Instruct" model?
+#
+# A raw language model is trained to **predict the next token** given the
+# preceding text — it is a continuation engine, not a question-answerer. If you
+# ask it "Is this review positive or negative?" it might respond with another
+# question, or continue the sentence, or generate gibberish.
+#
+# An **instruction-tuned** (or "Instruct") model has been through a second
+# training stage — **instruction fine-tuning** — where it is shown thousands of
+# examples of the form:
+#
+# > *User:* Summarise this article.  
+# > *Assistant:* [summary]
+#
+# After this stage the model learns to **follow instructions** rather than just
+# continue text.  The `-Instruct` suffix in model names (e.g. `Qwen2.5-0.5B-
+# Instruct`, `Llama-3.2-1B-Instruct`) signals that this fine-tuning has been
+# applied.  Without it, zero-shot prompting would not work reliably.
+#
+# ### Our model: Qwen2.5-0.5B-Instruct
+#
 # We use **Qwen2.5-0.5B-Instruct** via [`llama.cpp`](https://github.com/ggerganov/llama.cpp),
 # a small instruction-tuned model (~500 MB, Q4 quantised) that runs entirely on
 # CPU in under a second per review.  Larger models (Llama-3.2-1B, Phi-3-mini)
@@ -360,12 +381,18 @@ print(f"Train embeddings shape: {train_embeddings.shape}")
 # > first run (~350 MB).  If the model cannot be downloaded (e.g. no network or
 # > `llama-cpp-python` is not installed), the cell will skip gracefully.
 
+# %% [markdown]
+# ### 6.1 Loading the model
+#
+# We first download (on first run) and load the quantised GGUF model into
+# `llama.cpp`.  The `try_to_load_from_cache` check avoids a long download
+# attempt when the model is not yet available — the cell prints a helpful
+# message instead of hanging.
+
 # %%
 try:
     from huggingface_hub import try_to_load_from_cache
     from llama_cpp import Llama
-    from tqdm import tqdm
-    import time
 
     MODEL_REPO = "Qwen/Qwen2.5-0.5B-Instruct-GGUF"
     MODEL_FILE = "qwen2.5-0.5b-instruct-q4_k_m.gguf"
@@ -376,7 +403,10 @@ try:
             "Qwen2.5 model not cached. Run this cell manually to download "
             f"{MODEL_REPO}/{MODEL_FILE} (~350 MB) and run the demo."
         )
+        llm = None
     else:
+        import time
+
         print("Loading Qwen2.5-0.5B via llama.cpp …")
         t0 = time.time()
         llm = Llama.from_pretrained(
@@ -387,42 +417,89 @@ try:
             verbose=False,
         )
         print(f"Model loaded in {time.time() - t0:.1f}s")
-
-        system_prompt = (
-            'You are a sentiment classifier. '
-            'Answer only with "positive" or "negative".'
-        )
-
-        n_demo = 50
-        test_texts = data["test"]["text"][:n_demo]
-        y_true = data["test"]["label"][:n_demo]
-
-        y_pred = []
-        t0 = time.time()
-        for text in tqdm(test_texts):
-            prompt = (
-                f"<|im_start|>system\n{system_prompt}<|im_end|>\n"
-                f"<|im_start|>user\nIs this movie review positive or negative? "
-                f"Review: {text}<|im_end|>\n<|im_start|>assistant\n"
-            )
-            output = llm(prompt, max_tokens=10, temperature=0, stop=["<|im_end|>"])
-            response = output["choices"][0]["text"].strip().lower()
-            if "positive" in response:
-                y_pred.append(1)
-            elif "negative" in response:
-                y_pred.append(0)
-            else:
-                y_pred.append(0)
-
-        elapsed = time.time() - t0
-
-        from sklearn.metrics import accuracy_score
-
-        acc = accuracy_score(y_true, y_pred)
-        print(f"\nQwen2.5-0.5B zero-shot accuracy (on {n_demo} samples): {acc:.2f}")
-        print(f"Total time: {elapsed:.1f}s  ({elapsed / n_demo:.2f}s per review)")
 except Exception as e:
-    print(f"Skipping Qwen2.5 demo (model not available): {e}")
+    print(f"Could not load Qwen2.5 (model not available): {e}")
+    llm = None
+
+# %% [markdown]
+# ### 6.2 Designing the prompt
+#
+# Instruction-tuned chat models expect a **structured prompt format** with
+# clearly separated *system*, *user*, and *assistant* turns.  Qwen2.5 uses the
+# ChatML format with special tokens:
+#
+# ```
+# <|im_start|>system
+# You are a sentiment classifier. Answer only with "positive" or "negative".
+# <|im_end|>
+# <|im_start|>user
+# Is this movie review positive or negative? Review: <the review text>
+# <|im_end|>
+# <|im_start|>assistant
+# ```
+#
+# The **system prompt** sets the model's role and constraints ("answer only
+# with positive or negative").  The **user prompt** contains the actual
+# question and the review text.  Setting `temperature=0` makes the output
+# deterministic — the model always picks the most likely next token, which is
+# what we want for a classifier.
+
+# %%
+system_prompt = (
+    'You are a sentiment classifier. '
+    'Answer only with "positive" or "negative".'
+)
+
+n_demo = 50
+test_texts = data["test"]["text"][:n_demo]
+y_true = data["test"]["label"][:n_demo]
+
+example_prompt = (
+    f"<|im_start|>system\n{system_prompt}<|im_end|>\n"
+    f"<|im_start|>user\nIs this movie review positive or negative? "
+    f"Review: {test_texts[0]}<|im_end|>\n<|im_start|>assistant\n"
+)
+print("Example prompt (first review):")
+print(example_prompt)
+
+# %% [markdown]
+# ### 6.3 Running the classification and measuring accuracy
+#
+# We loop over 50 test reviews, generate the model's response, parse it into a
+# binary label, and compute accuracy.  Each inference call takes ~0.3 s on CPU,
+# so the whole loop finishes in about 15 seconds.
+
+# %%
+if llm is not None:
+    from tqdm import tqdm
+    import time
+
+    y_pred = []
+    t0 = time.time()
+    for text in tqdm(test_texts):
+        prompt = (
+            f"<|im_start|>system\n{system_prompt}<|im_end|>\n"
+            f"<|im_start|>user\nIs this movie review positive or negative? "
+            f"Review: {text}<|im_end|>\n<|im_start|>assistant\n"
+        )
+        output = llm(prompt, max_tokens=10, temperature=0, stop=["<|im_end|>"])
+        response = output["choices"][0]["text"].strip().lower()
+        if "positive" in response:
+            y_pred.append(1)
+        elif "negative" in response:
+            y_pred.append(0)
+        else:
+            y_pred.append(0)
+
+    elapsed = time.time() - t0
+
+    from sklearn.metrics import accuracy_score
+
+    acc = accuracy_score(y_true, y_pred)
+    print(f"\nQwen2.5-0.5B zero-shot accuracy (on {n_demo} samples): {acc:.2f}")
+    print(f"Total time: {elapsed:.1f}s  ({elapsed / n_demo:.2f}s per review)")
+else:
+    print("Model not loaded — skipping classification.")
 
 # %% [markdown]
 # <div class="alert alert-success">
