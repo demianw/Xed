@@ -92,6 +92,9 @@ jobs:
             seaborn==0.13.2 \
             numpy
 
+      - name: Install xed package from local checkout
+        run: pip install -e ".[dev]"
+
       - name: Set non-interactive matplotlib backend
         run: echo "MPLBACKEND=Agg" >> "$GITHUB_ENV"
 
