@@ -96,6 +96,8 @@ from sklearn.metrics import (
 )
 from sklearn.dummy import DummyClassifier, DummyRegressor
 
+%matplotlib inline
+
 rng = np.random.default_rng(42)
 
 # %% [markdown]

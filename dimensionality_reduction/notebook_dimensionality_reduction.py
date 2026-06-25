@@ -95,6 +95,8 @@ from sklearn.model_selection import cross_val_score, StratifiedKFold, GridSearch
 from sklearn.metrics import accuracy_score
 from scipy.stats import pearsonr
 
+%matplotlib inline
+
 rng = np.random.default_rng(42)
 cv = StratifiedKFold(n_splits=5, shuffle=True, random_state=42)
 

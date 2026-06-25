@@ -87,6 +87,8 @@ from sklearn.metrics import (
 from sklearn.inspection import permutation_importance, PartialDependenceDisplay
 from sklearn.dummy import DummyClassifier
 
+%matplotlib inline
+
 rng = np.random.default_rng(42)
 
 # %% [markdown]

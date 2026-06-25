@@ -62,6 +62,8 @@ from sklearn.svm import LinearSVC
 from sklearn.model_selection import train_test_split, cross_val_score, cross_val_predict
 from sklearn.dummy import DummyClassifier
 
+%matplotlib inline
+
 rng = np.random.RandomState(42)
 
 # %% [markdown]

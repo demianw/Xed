@@ -43,7 +43,7 @@
 # ### Import necessary packages
 
 # %%
-# %matplotlib inline
+%matplotlib inline
 
 # %%
 import pandas as pd
@@ -157,7 +157,7 @@ data.head()
 # # Data Visualization
 
 # %%
-# %matplotlib inline
+%matplotlib inline
 
 # %% [markdown]
 # ### Question 4

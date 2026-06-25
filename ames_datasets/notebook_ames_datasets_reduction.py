@@ -31,7 +31,7 @@ if not os.environ.get("CI"):
 # # Exploring Real Estate Sales Prices — Dimensionality Reduction
 
 # %% id="vPVVzLXKL1uc"
-# %matplotlib inline
+%matplotlib inline
 import pandas as pd
 import numpy as np
 import seaborn as sns

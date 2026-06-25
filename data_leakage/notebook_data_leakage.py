@@ -83,7 +83,7 @@ from sklearn.feature_selection import SelectKBest, f_classif
 from sklearn.inspection import permutation_importance
 
 rng = np.random.RandomState(42)
-# %matplotlib inline  # noqa
+%matplotlib inline
 
 # %% [markdown]
 # ---

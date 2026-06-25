@@ -103,7 +103,7 @@ for fold in range(k):
 # %%
 import matplotlib.pyplot as plt
 
-# %matplotlib inline
+%matplotlib inline
 plt.matshow(masks, cmap="gray_r")
 
 # %% [markdown]
