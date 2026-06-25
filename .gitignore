@@ -3,3 +3,4 @@
 # Keep generated .ipynb files in version control
 # (they are needed for the Colab links to work)
 __pycache__
+uv.lock
