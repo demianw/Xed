@@ -15,20 +15,26 @@
 # %%
 
 # %%
-import os, sys, subprocess
+import os
+import subprocess
+import sys
 
 # Install the course package and all pinned dependencies.
 # In GitHub Actions CI this step is skipped (pre-installed via pip install -e .[dev]).
-if not os.environ.get('CI'):
+if not os.environ.get("CI"):
     subprocess.run(
-        [sys.executable, '-m', 'pip', 'install', '-q',
-         'git+https://github.com/demianw/Xed.git'],
+        [sys.executable, "-m", "pip", "install", "-q", "git+https://github.com/demianw/Xed.git"],
         check=True,
     )
     subprocess.run(
-        [sys.executable, '-m', 'pip', 'install', '-q',
-         'scipy>=1.13',
-         ],
+        [
+            sys.executable,
+            "-m",
+            "pip",
+            "install",
+            "-q",
+            "scipy>=1.13",
+        ],
         check=True,
     )
 
@@ -63,7 +69,8 @@ if not os.environ.get('CI'):
 
 # %%
 import warnings
-warnings.filterwarnings('ignore')
+
+warnings.filterwarnings("ignore")
 
 import numpy as np
 import pandas as pd
@@ -77,11 +84,16 @@ from sklearn.preprocessing import StandardScaler, OneHotEncoder, OrdinalEncoder
 from sklearn.impute import SimpleImputer
 from sklearn.linear_model import PoissonRegressor, TweedieRegressor, Ridge, LogisticRegression
 from sklearn.ensemble import HistGradientBoostingClassifier, HistGradientBoostingRegressor
-from sklearn.model_selection import (train_test_split, cross_val_score,
-                                     TimeSeriesSplit, KFold)
-from sklearn.metrics import (mean_absolute_error, root_mean_squared_error,
-                             mean_poisson_deviance, d2_tweedie_score,
-                             roc_auc_score, f1_score, classification_report)
+from sklearn.model_selection import train_test_split, cross_val_score, TimeSeriesSplit, KFold
+from sklearn.metrics import (
+    mean_absolute_error,
+    root_mean_squared_error,
+    mean_poisson_deviance,
+    d2_tweedie_score,
+    roc_auc_score,
+    f1_score,
+    classification_report,
+)
 from sklearn.dummy import DummyClassifier, DummyRegressor
 
 rng = np.random.default_rng(42)
@@ -119,15 +131,15 @@ rng = np.random.default_rng(42)
 # %%
 # Loading 678 013 rows — may take 30–60 s on first call (cached after that)
 print("Loading freMTPL2freq …")
-ds_freq = fetch_openml(data_id=41214, as_frame=True, parser='auto')
+ds_freq = fetch_openml(data_id=41214, as_frame=True, parser="auto")
 df_freq = ds_freq.frame
 
 print("Loading freMTPL2sev …")
-ds_sev  = fetch_openml(data_id=41215, as_frame=True, parser='auto')
-df_sev  = ds_sev.frame
+ds_sev = fetch_openml(data_id=41215, as_frame=True, parser="auto")
+df_sev = ds_sev.frame
 
 # In CI, subsample to keep execution time reasonable
-if os.environ.get('CI'):
+if os.environ.get("CI"):
     df_freq = df_freq.sample(n=50_000, random_state=42).reset_index(drop=True)
 
 print(f"\nFrequency dataset : {df_freq.shape[0]:,} rows × {df_freq.shape[1]} columns")
@@ -138,19 +150,21 @@ df_freq.head(3)
 # ### 1.1 Key actuarial statistics
 
 # %%
-total_exposure = df_freq['Exposure'].sum()
-total_claims   = df_freq['ClaimNb'].sum()
-freq_per_year  = total_claims / total_exposure
+total_exposure = df_freq["Exposure"].sum()
+total_claims = df_freq["ClaimNb"].sum()
+freq_per_year = total_claims / total_exposure
 
 print(f"Total policy-years of exposure : {total_exposure:,.0f}")
 print(f"Total claims                   : {total_claims:,.0f}")
-print(f"Observed frequency (per year)  : {freq_per_year:.4f}  "
-      f"≈ one claim every {1/freq_per_year:.1f} years")
-print(f"Policies with 0 claims         : {(df_freq['ClaimNb'] == 0).mean()*100:.1f}%")
-print(f"Policies with ≥ 1 claim        : {(df_freq['ClaimNb'] >= 1).mean()*100:.1f}%")
+print(
+    f"Observed frequency (per year)  : {freq_per_year:.4f}  "
+    f"≈ one claim every {1 / freq_per_year:.1f} years"
+)
+print(f"Policies with 0 claims         : {(df_freq['ClaimNb'] == 0).mean() * 100:.1f}%")
+print(f"Policies with ≥ 1 claim        : {(df_freq['ClaimNb'] >= 1).mean() * 100:.1f}%")
 print()
 print("BonusMalus distribution:")
-print(df_freq['BonusMalus'].describe().to_string())
+print(df_freq["BonusMalus"].describe().to_string())
 
 # %% [markdown]
 # <div class="alert alert-success">
@@ -201,17 +215,18 @@ print(df_freq['BonusMalus'].describe().to_string())
 
 # %%
 # Prepare frequency target and sample weights
-y_freq = df_freq['ClaimNb'] / df_freq['Exposure']   # annualised claim frequency
-w_freq = df_freq['Exposure']                          # sample weights
+y_freq = df_freq["ClaimNb"] / df_freq["Exposure"]  # annualised claim frequency
+w_freq = df_freq["Exposure"]  # sample weights
 
 # Clean up VehGas: strip stray quotes introduced by OpenML
-df_freq['VehGas'] = df_freq['VehGas'].str.strip("'")
+df_freq["VehGas"] = df_freq["VehGas"].str.strip("'")
 
 # Feature matrix
-X = df_freq.drop(columns=['IDpol', 'ClaimNb', 'Exposure'])
+X = df_freq.drop(columns=["IDpol", "ClaimNb", "Exposure"])
 
 # Train / test split — 80 / 20, stratified on zero/non-zero claims
 from sklearn.model_selection import train_test_split
+
 X_train, X_test, y_train, y_test, w_train, w_test = train_test_split(
     X, y_freq, w_freq, test_size=0.20, random_state=42
 )
@@ -223,17 +238,17 @@ print(f"Test  : {len(X_test):,} policies")
 # ### 2.1 Building the preprocessing pipeline
 
 # %%
-numeric_cols     = ['VehPower', 'VehAge', 'DrivAge', 'BonusMalus', 'Density']
-categorical_cols = ['Area', 'VehBrand', 'VehGas', 'Region']
+numeric_cols = ["VehPower", "VehAge", "DrivAge", "BonusMalus", "Density"]
+categorical_cols = ["Area", "VehBrand", "VehGas", "Region"]
 
-numeric_pipe = make_pipeline(SimpleImputer(strategy='median'), StandardScaler())
+numeric_pipe = make_pipeline(SimpleImputer(strategy="median"), StandardScaler())
 categorical_pipe = make_pipeline(
-    SimpleImputer(strategy='most_frequent'),
-    OneHotEncoder(handle_unknown='ignore', sparse_output=False),
+    SimpleImputer(strategy="most_frequent"),
+    OneHotEncoder(handle_unknown="ignore", sparse_output=False),
 )
 
 preprocessor = make_column_transformer(
-    (numeric_pipe,     numeric_cols),
+    (numeric_pipe, numeric_cols),
     (categorical_pipe, categorical_cols),
 )
 
@@ -255,12 +270,12 @@ poisson_pipe.fit(X_train, y_train, poissonregressor__sample_weight=w_train)
 
 # %%
 y_pred_train = poisson_pipe.predict(X_train)
-y_pred_test  = poisson_pipe.predict(X_test)
+y_pred_test = poisson_pipe.predict(X_test)
 
 dev_train = mean_poisson_deviance(y_train, y_pred_train, sample_weight=w_train)
-dev_test  = mean_poisson_deviance(y_test,  y_pred_test,  sample_weight=w_test)
-d2_train  = d2_tweedie_score(y_train, y_pred_train, sample_weight=w_train, power=1)
-d2_test   = d2_tweedie_score(y_test,  y_pred_test,  sample_weight=w_test,  power=1)
+dev_test = mean_poisson_deviance(y_test, y_pred_test, sample_weight=w_test)
+d2_train = d2_tweedie_score(y_train, y_pred_train, sample_weight=w_train, power=1)
+d2_test = d2_tweedie_score(y_test, y_pred_test, sample_weight=w_test, power=1)
 
 print("Poisson GLM — frequency model")
 print(f"  Poisson deviance  : train = {dev_train:.4f}   test = {dev_test:.4f}")
@@ -268,7 +283,7 @@ print(f"  D² score          : train = {d2_train:.4f}   test = {d2_test:.4f}")
 print()
 # Calibration check: predicted mean should match observed mean
 print(f"  Mean predicted freq : {(y_pred_test * w_test).sum() / w_test.sum():.5f}")
-print(f"  Observed freq       : {(y_test      * w_test).sum() / w_test.sum():.5f}")
+print(f"  Observed freq       : {(y_test * w_test).sum() / w_test.sum():.5f}")
 
 # %% [markdown]
 # <div class="alert alert-success">
@@ -327,16 +342,15 @@ print(f"  Observed freq       : {(y_test      * w_test).sum() / w_test.sum():.5f
 # %%
 # Merge severity onto frequency data
 df_merged = df_freq.merge(
-    df_sev.groupby('IDpol')['ClaimAmount'].sum().reset_index(),
-    on='IDpol', how='left'
+    df_sev.groupby("IDpol")["ClaimAmount"].sum().reset_index(), on="IDpol", how="left"
 )
-df_merged['ClaimAmount'] = df_merged['ClaimAmount'].fillna(0.0)
+df_merged["ClaimAmount"] = df_merged["ClaimAmount"].fillna(0.0)
 
 # Pure premium target: total claim amount per unit of exposure
-y_pp = df_merged['ClaimAmount'] / df_merged['Exposure']
+y_pp = df_merged["ClaimAmount"] / df_merged["Exposure"]
 
-X_pp = df_merged.drop(columns=['IDpol', 'ClaimNb', 'Exposure', 'ClaimAmount'])
-w_pp = df_merged['Exposure']
+X_pp = df_merged.drop(columns=["IDpol", "ClaimNb", "Exposure", "ClaimAmount"])
+w_pp = df_merged["Exposure"]
 
 X_pp_train, X_pp_test, y_pp_train, y_pp_test, w_pp_train, w_pp_test = train_test_split(
     X_pp, y_pp, w_pp, test_size=0.20, random_state=42
@@ -345,17 +359,18 @@ X_pp_train, X_pp_test, y_pp_train, y_pp_test, w_pp_train, w_pp_test = train_test
 # Tweedie (compound Poisson-Gamma) pipeline
 tweedie_pipe = make_pipeline(
     preprocessor,
-    TweedieRegressor(power=1.5, alpha=0.1, max_iter=1000, link='log'),
+    TweedieRegressor(power=1.5, alpha=0.1, max_iter=1000, link="log"),
 )
 tweedie_pipe.fit(X_pp_train, y_pp_train, tweedieregressor__sample_weight=w_pp_train)
 
 d2_tweedie = d2_tweedie_score(
-    y_pp_test, tweedie_pipe.predict(X_pp_test),
-    sample_weight=w_pp_test, power=1.5
+    y_pp_test, tweedie_pipe.predict(X_pp_test), sample_weight=w_pp_test, power=1.5
 )
 print(f"Tweedie GLM (power=1.5) D² score : {d2_tweedie:.4f}")
 print(f"Mean predicted pure premium : €{tweedie_pipe.predict(X_pp_test).mean():.2f} / year")
-print(f"Mean observed  pure premium : €{(y_pp_test * w_pp_test).sum() / w_pp_test.sum():.2f} / year")
+print(
+    f"Mean observed  pure premium : €{(y_pp_test * w_pp_test).sum() / w_pp_test.sum():.2f} / year"
+)
 
 # %% [markdown]
 # <div class="alert alert-success">
@@ -407,18 +422,20 @@ print(f"Mean observed  pure premium : €{(y_pp_test * w_pp_test).sum() / w_pp_t
 # %%
 # Illustrate BonusMalus dynamics for three stylised drivers
 
+
 def update_bm(bm, n_claims):
     """Apply French BM update rule for one year."""
     if n_claims == 0:
         return max(50.0, bm * 0.95)
     else:
-        return min(350.0, bm * (1.25 ** n_claims))
+        return min(350.0, bm * (1.25**n_claims))
+
 
 n_years = 15
 profiles = {
-    'Safe driver (0 claims/yr)':   [0] * n_years,
-    'Average driver (~1 claim/3yr)': [0,0,1,0,0,1,0,0,0,1,0,0,0,0,1],
-    'Risky driver (~1 claim/yr)':  [1,0,1,1,0,1,1,0,1,1,1,0,1,1,0],
+    "Safe driver (0 claims/yr)": [0] * n_years,
+    "Average driver (~1 claim/3yr)": [0, 0, 1, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0, 0, 1],
+    "Risky driver (~1 claim/yr)": [1, 0, 1, 1, 0, 1, 1, 0, 1, 1, 1, 0, 1, 1, 0],
 }
 
 fig, ax = plt.subplots(figsize=(10, 4))
@@ -427,14 +444,14 @@ for label, claim_history in profiles.items():
     for claims in claim_history:
         bm = update_bm(bm, claims)
         trajectory.append(bm)
-    ax.plot(range(n_years + 1), trajectory, marker='o', markersize=4, label=label)
+    ax.plot(range(n_years + 1), trajectory, marker="o", markersize=4, label=label)
 
-ax.axhline(100, color='grey', linestyle='--', linewidth=0.8, label='Neutral (100)')
-ax.axhline(50,  color='green', linestyle=':',  linewidth=0.8, label='Super-bonus (50)')
-ax.set_xlabel('Year')
-ax.set_ylabel('BonusMalus coefficient')
-ax.set_title('BonusMalus trajectory for three driver profiles (15 years)')
-ax.legend(loc='upper left')
+ax.axhline(100, color="grey", linestyle="--", linewidth=0.8, label="Neutral (100)")
+ax.axhline(50, color="green", linestyle=":", linewidth=0.8, label="Super-bonus (50)")
+ax.set_xlabel("Year")
+ax.set_ylabel("BonusMalus coefficient")
+ax.set_title("BonusMalus trajectory for three driver profiles (15 years)")
+ax.legend(loc="upper left")
 plt.tight_layout()
 plt.show()
 
@@ -485,6 +502,7 @@ plt.show()
 # The resulting panel dataset has genuine temporal structure: claim events in past
 # months causally influence future BonusMalus and therefore future claim rates.
 
+
 # %%
 def simulate_portfolio(
     poisson_pipe: object,
@@ -520,34 +538,47 @@ def simulate_portfolio(
     rng_sim = np.random.default_rng(seed)
 
     # ── 1. Sample a cohort of policyholders ────────────────────────────
-    feature_cols = [c for c in source_df.columns
-                    if c not in ('IDpol', 'ClaimNb', 'Exposure')]
-    cohort = (source_df[feature_cols]
-              .sample(n=n_policyholders, random_state=seed, replace=False)
-              .reset_index(drop=True))
-    cohort['VehGas'] = cohort['VehGas'].str.strip("'")
+    feature_cols = [c for c in source_df.columns if c not in ("IDpol", "ClaimNb", "Exposure")]
+    cohort = (
+        source_df[feature_cols]
+        .sample(n=n_policyholders, random_state=seed, replace=False)
+        .reset_index(drop=True)
+    )
+    cohort["VehGas"] = cohort["VehGas"].str.strip("'")
 
     # ── 2. Assign initial BonusMalus from the sampled profiles ─────────
-    bm = cohort['BonusMalus'].values.astype(float)
+    bm = cohort["BonusMalus"].values.astype(float)
 
     # ── 3. Static features (everything except BonusMalus and Exposure) ─
-    static_cols = [c for c in feature_cols if c not in ('BonusMalus',)]
+    static_cols = [c for c in feature_cols if c not in ("BonusMalus",)]
     static = cohort[static_cols].copy()
 
     # Seasonality multipliers (higher claims in winter months)
-    season = {1: 1.30, 2: 1.25, 3: 1.05, 4: 0.90, 5: 0.85, 6: 0.80,
-              7: 0.80, 8: 0.85, 9: 0.95, 10: 1.05, 11: 1.20, 12: 1.35}
+    season = {
+        1: 1.30,
+        2: 1.25,
+        3: 1.05,
+        4: 0.90,
+        5: 0.85,
+        6: 0.80,
+        7: 0.80,
+        8: 0.85,
+        9: 0.95,
+        10: 1.05,
+        11: 1.20,
+        12: 1.35,
+    }
 
     records = []
     year_claim_counts = np.zeros(n_policyholders, dtype=int)  # within current year
 
     for month_idx in range(n_months):
-        cal_month = month_idx % 12 + 1   # 1–12
-        cal_year  = 2020 + month_idx // 12
+        cal_month = month_idx % 12 + 1  # 1–12
+        cal_year = 2020 + month_idx // 12
 
         # Build the feature frame for this month (update BonusMalus column)
         X_month = static.copy()
-        X_month['BonusMalus'] = bm
+        X_month["BonusMalus"] = bm
 
         # Predict annualised claim frequency from the GLM
         lambda_annual = poisson_pipe.predict(X_month)
@@ -562,24 +593,24 @@ def simulate_portfolio(
 
         # Simulate claim amount for policies with a claim
         # Log-normal severity: median ≈ €1 200, with vehicle-age loading
-        veh_age = static['VehAge'].values
+        veh_age = static["VehAge"].values
         sigma_sev = 0.75
-        mu_sev = np.log(1200) + 0.03 * veh_age   # older vehicles → higher repair cost
+        mu_sev = np.log(1200) + 0.03 * veh_age  # older vehicles → higher repair cost
         raw_sev = rng_sim.lognormal(mu_sev, sigma_sev)
         claim_amount = claim_occ * raw_sev
 
         # Store one row per policyholder for this month
         for i in range(n_policyholders):
             row = {
-                'policyholder_id': i,
-                'month_index':     month_idx,
-                'calendar_year':   cal_year,
-                'calendar_month':  cal_month,
-                'BonusMalus':      bm[i],
-                'lambda_annual':   lambda_annual[i],
-                'p_claim':         p_claim[i],
-                'claim_occurred':  claim_occ[i],
-                'claim_amount':    claim_amount[i],
+                "policyholder_id": i,
+                "month_index": month_idx,
+                "calendar_year": cal_year,
+                "calendar_month": cal_month,
+                "BonusMalus": bm[i],
+                "lambda_annual": lambda_annual[i],
+                "p_claim": p_claim[i],
+                "claim_occurred": claim_occ[i],
+                "claim_amount": claim_amount[i],
             }
             for col in static_cols:
                 row[col] = static[col].iloc[i]
@@ -592,20 +623,21 @@ def simulate_portfolio(
         if cal_month == 12:
             bm = np.where(
                 year_claim_counts == 0,
-                np.maximum(50.0,  bm * 0.95),
-                np.minimum(350.0, bm * (1.25 ** year_claim_counts)),
+                np.maximum(50.0, bm * 0.95),
+                np.minimum(350.0, bm * (1.25**year_claim_counts)),
             )
-            year_claim_counts[:] = 0   # reset counter for the new year
+            year_claim_counts[:] = 0  # reset counter for the new year
 
     panel = pd.DataFrame(records)
-    panel = panel.sort_values(['policyholder_id', 'month_index']).reset_index(drop=True)
+    panel = panel.sort_values(["policyholder_id", "month_index"]).reset_index(drop=True)
     return panel
+
 
 print("Simulating 600 policyholders × 36 months …")
 panel = simulate_portfolio(poisson_pipe, df_freq, n_policyholders=600, n_months=36)
 print(f"Panel shape : {panel.shape}")
 print(f"Total claims in simulation : {panel['claim_occurred'].sum()}")
-print(f"Overall monthly claim rate : {panel['claim_occurred'].mean()*100:.2f}%")
+print(f"Overall monthly claim rate : {panel['claim_occurred'].mean() * 100:.2f}%")
 panel.head(6)
 
 # %% [markdown]
@@ -627,6 +659,7 @@ panel.head(6)
 # sorted by time.  Computing a rolling mean across policyholder boundaries would
 # introduce information from a different person's claim history — pure leakage.
 
+
 # %%
 def add_temporal_features(df: pd.DataFrame) -> pd.DataFrame:
     """
@@ -636,37 +669,56 @@ def add_temporal_features(df: pd.DataFrame) -> pd.DataFrame:
     All shift/rolling operations are performed within each policyholder group
     to prevent information from bleeding across individuals.
     """
-    df = df.copy().sort_values(['policyholder_id', 'month_index'])
+    df = df.copy().sort_values(["policyholder_id", "month_index"])
 
-    grp = df.groupby('policyholder_id')['claim_occurred']
+    grp = df.groupby("policyholder_id")["claim_occurred"]
 
     # Lag features (shift by 1 so there is no same-month leakage)
-    df['prev_claim']  = grp.shift(1).fillna(0).astype(int)
-    df['claims_3m']   = (grp.shift(1)
-                            .rolling(window=3,  min_periods=1)
-                            .sum()
-                            .reset_index(level=0, drop=True)
-                            .fillna(0))
-    df['claims_12m']  = (grp.shift(1)
-                            .rolling(window=12, min_periods=1)
-                            .sum()
-                            .reset_index(level=0, drop=True)
-                            .fillna(0))
+    df["prev_claim"] = grp.shift(1).fillna(0).astype(int)
+    df["claims_3m"] = (
+        grp.shift(1)
+        .rolling(window=3, min_periods=1)
+        .sum()
+        .reset_index(level=0, drop=True)
+        .fillna(0)
+    )
+    df["claims_12m"] = (
+        grp.shift(1)
+        .rolling(window=12, min_periods=1)
+        .sum()
+        .reset_index(level=0, drop=True)
+        .fillna(0)
+    )
 
     # Cyclical month encoding
-    df['month_sin'] = np.sin(2 * np.pi * df['calendar_month'] / 12)
-    df['month_cos'] = np.cos(2 * np.pi * df['calendar_month'] / 12)
+    df["month_sin"] = np.sin(2 * np.pi * df["calendar_month"] / 12)
+    df["month_cos"] = np.cos(2 * np.pi * df["calendar_month"] / 12)
 
     # Year trend (0, 1, 2 for the three simulated years)
-    df['year_idx'] = df['calendar_year'] - df['calendar_year'].min()
+    df["year_idx"] = df["calendar_year"] - df["calendar_year"].min()
 
     return df
 
+
 panel_feat = add_temporal_features(panel)
 print("New temporal features:")
-print(panel_feat[['policyholder_id', 'month_index', 'calendar_month',
-                   'prev_claim', 'claims_3m', 'claims_12m',
-                   'month_sin', 'month_cos', 'claim_occurred']].head(15).to_string())
+print(
+    panel_feat[
+        [
+            "policyholder_id",
+            "month_index",
+            "calendar_month",
+            "prev_claim",
+            "claims_3m",
+            "claims_12m",
+            "month_sin",
+            "month_cos",
+            "claim_occurred",
+        ]
+    ]
+    .head(15)
+    .to_string()
+)
 
 # %% [markdown]
 # <div class="alert alert-success">
@@ -721,45 +773,74 @@ print(panel_feat[['policyholder_id', 'month_index', 'calendar_month',
 # %%
 # ── Prepare the modelling dataset ──────────────────────────────────────────────
 # Drop the first 3 months (no lag-3 history) and sort by time, then policyholder
-panel_model = (panel_feat[panel_feat['month_index'] >= 3]
-               .sort_values(['month_index', 'policyholder_id'])
-               .reset_index(drop=True))
+panel_model = (
+    panel_feat[panel_feat["month_index"] >= 3]
+    .sort_values(["month_index", "policyholder_id"])
+    .reset_index(drop=True)
+)
 
 feature_cols_ts = [
-    'BonusMalus', 'VehPower', 'VehAge', 'DrivAge', 'Density',
-    'prev_claim', 'claims_3m', 'claims_12m',
-    'month_sin', 'month_cos', 'year_idx',
-    'Area', 'VehBrand', 'VehGas', 'Region',
+    "BonusMalus",
+    "VehPower",
+    "VehAge",
+    "DrivAge",
+    "Density",
+    "prev_claim",
+    "claims_3m",
+    "claims_12m",
+    "month_sin",
+    "month_cos",
+    "year_idx",
+    "Area",
+    "VehBrand",
+    "VehGas",
+    "Region",
 ]
 X_panel = panel_model[feature_cols_ts]
-y_panel = panel_model['claim_occurred']
+y_panel = panel_model["claim_occurred"]
 
 # ── Compare KFold (wrong) vs TimeSeriesSplit (correct) ────────────────────────
 from sklearn.linear_model import LogisticRegression
 
 panel_preprocessor = make_column_transformer(
-    (make_pipeline(SimpleImputer(strategy='median'), StandardScaler()),
-     ['BonusMalus', 'VehPower', 'VehAge', 'DrivAge', 'Density',
-      'prev_claim', 'claims_3m', 'claims_12m',
-      'month_sin', 'month_cos', 'year_idx']),
-    (make_pipeline(SimpleImputer(strategy='most_frequent'),
-                   OneHotEncoder(handle_unknown='ignore', sparse_output=False)),
-     ['Area', 'VehBrand', 'VehGas', 'Region']),
+    (
+        make_pipeline(SimpleImputer(strategy="median"), StandardScaler()),
+        [
+            "BonusMalus",
+            "VehPower",
+            "VehAge",
+            "DrivAge",
+            "Density",
+            "prev_claim",
+            "claims_3m",
+            "claims_12m",
+            "month_sin",
+            "month_cos",
+            "year_idx",
+        ],
+    ),
+    (
+        make_pipeline(
+            SimpleImputer(strategy="most_frequent"),
+            OneHotEncoder(handle_unknown="ignore", sparse_output=False),
+        ),
+        ["Area", "VehBrand", "VehGas", "Region"],
+    ),
 )
 
 lr_pipe = make_pipeline(
     panel_preprocessor,
-    LogisticRegression(max_iter=1000, random_state=42, class_weight='balanced'),
+    LogisticRegression(max_iter=1000, random_state=42, class_weight="balanced"),
 )
 
 # TimeSeriesSplit: 5 folds, each test fold = 5 months, gap = 1 month
 # The gap prevents the model from using the month immediately before the test window
 # (which may be correlated by the BM update cycle).
-tscv = TimeSeriesSplit(n_splits=5, gap=600)   # gap=600 rows ≈ 1 month × 600 policyholders
+tscv = TimeSeriesSplit(n_splits=5, gap=600)  # gap=600 rows ≈ 1 month × 600 policyholders
 kfcv = KFold(n_splits=5, shuffle=True, random_state=42)
 
-scores_ts  = cross_val_score(lr_pipe, X_panel, y_panel, cv=tscv, scoring='roc_auc')
-scores_kf  = cross_val_score(lr_pipe, X_panel, y_panel, cv=kfcv, scoring='roc_auc')
+scores_ts = cross_val_score(lr_pipe, X_panel, y_panel, cv=tscv, scoring="roc_auc")
+scores_kf = cross_val_score(lr_pipe, X_panel, y_panel, cv=kfcv, scoring="roc_auc")
 
 print("Logistic Regression — AUC-ROC")
 print(f"  TimeSeriesSplit : {scores_ts.mean():.4f} ± {scores_ts.std():.4f}")
@@ -815,16 +896,16 @@ print(f"  Leakage bias    : {scores_kf.mean() - scores_ts.mean():+.4f}")
 
 # %%
 # ── Train / test split by time ──────────────────────────────────────────────
-cutoff = panel_model['month_index'].max() - 5  # last 6 months = test
-train_mask = panel_model['month_index'] <  cutoff
-test_mask  = panel_model['month_index'] >= cutoff
+cutoff = panel_model["month_index"].max() - 5  # last 6 months = test
+train_mask = panel_model["month_index"] < cutoff
+test_mask = panel_model["month_index"] >= cutoff
 
 X_train_ts = X_panel[train_mask]
-X_test_ts  = X_panel[test_mask]
-y_cls_train = panel_model.loc[train_mask, 'claim_occurred']
-y_cls_test  = panel_model.loc[test_mask,  'claim_occurred']
-y_sev_train = panel_model.loc[train_mask, 'claim_amount']
-y_sev_test  = panel_model.loc[test_mask,  'claim_amount']
+X_test_ts = X_panel[test_mask]
+y_cls_train = panel_model.loc[train_mask, "claim_occurred"]
+y_cls_test = panel_model.loc[test_mask, "claim_occurred"]
+y_sev_train = panel_model.loc[train_mask, "claim_amount"]
+y_sev_test = panel_model.loc[test_mask, "claim_amount"]
 
 # ── Frequency model (classification) ─────────────────────────────────────────
 freq_clf = make_pipeline(
@@ -835,31 +916,33 @@ freq_clf.fit(X_train_ts, y_cls_train)
 p_claim_test = freq_clf.predict_proba(X_test_ts)[:, 1]
 
 # ── Severity model (regression on claim months only) ─────────────────────────
-claim_train = train_mask & (panel_model['claim_occurred'] == 1)
+claim_train = train_mask & (panel_model["claim_occurred"] == 1)
 sev_reg = make_pipeline(
     panel_preprocessor,
-    HistGradientBoostingRegressor(loss='gamma', random_state=42),
+    HistGradientBoostingRegressor(loss="gamma", random_state=42),
 )
 sev_reg.fit(X_panel[claim_train], y_sev_train[claim_train.values])
 mu_sev_test = sev_reg.predict(X_test_ts)
 
 # ── Expected loss per policyholder-month ─────────────────────────────────────
 panel_test = panel_model[test_mask].copy()
-panel_test['p_claim_pred'] = p_claim_test
-panel_test['mu_sev_pred']  = mu_sev_test
-panel_test['expected_loss'] = panel_test['p_claim_pred'] * panel_test['mu_sev_pred']
+panel_test["p_claim_pred"] = p_claim_test
+panel_test["mu_sev_pred"] = mu_sev_test
+panel_test["expected_loss"] = panel_test["p_claim_pred"] * panel_test["mu_sev_pred"]
 
 # Aggregate over the 6-month test window per policyholder
-agg = (panel_test.groupby('policyholder_id')
-       .agg(
-           total_expected_loss=('expected_loss', 'sum'),
-           total_observed_loss=('claim_amount',  'sum'),
-           n_claims_observed  =('claim_occurred','sum'),
-           mean_bm            =('BonusMalus',    'mean'),
-           driv_age           =('DrivAge',        'first'),
-       )
-       .sort_values('total_expected_loss', ascending=False)
-       .reset_index())
+agg = (
+    panel_test.groupby("policyholder_id")
+    .agg(
+        total_expected_loss=("expected_loss", "sum"),
+        total_observed_loss=("claim_amount", "sum"),
+        n_claims_observed=("claim_occurred", "sum"),
+        mean_bm=("BonusMalus", "mean"),
+        driv_age=("DrivAge", "first"),
+    )
+    .sort_values("total_expected_loss", ascending=False)
+    .reset_index()
+)
 
 print("Top 10 highest-risk policyholders (6-month test window)")
 print(agg.head(10).to_string(index=False))

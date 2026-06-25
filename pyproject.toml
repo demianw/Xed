@@ -2,12 +2,18 @@
 requires = ["hatchling"]
 build-backend = "hatchling.build"
 
+# ---------------------------------------------------------------------------
+# Project metadata
+# ---------------------------------------------------------------------------
 [project]
 name = "xed"
 version = "0.1.0"
 description = "Cardiff Introductory Data Science — course datasets and utilities"
 readme = "README.md"
 requires-python = ">=3.12"
+
+# Core dependencies installed when a student runs:
+#   pip install git+https://github.com/demianw/Xed.git
 dependencies = [
     "pandas>=3.0",
     "pip>=26.1.2",
@@ -20,31 +26,20 @@ dependencies = [
 ]
 
 [project.optional-dependencies]
-# Notebooks that use the R pls package datasets (gasoline NIR)
-chemometrics = [
-    "rdata>=0.9",
-]
-# Insurance / actuarial notebooks (freMTPL2 via fetch_openml)
-insurance = [
-    "scipy>=1.13",
-]
-# Text classification notebook
-text = [
+chemometrics = ["rdata>=0.9"]
+insurance    = ["scipy>=1.13"]
+text         = [
     "datasets>=2.20",
     "sentence-transformers>=3",
     "transformers>=4.44",
     "torch",
 ]
-# Foundation models notebook
-tabular-fm = [
-    "tabpfn",
-    "tabicl",
-]
-# Developer / CI tooling
+tabular-fm   = ["tabpfn", "tabicl"]
 dev = [
     "jupytext>=1.19",
     "nbmake",
     "pytest",
+    "ruff>=0.8",
     "codespell",
     "rdata>=0.9",
     "scipy>=1.13",
@@ -52,3 +47,66 @@ dev = [
 
 [tool.hatch.build.targets.wheel]
 packages = ["xed"]
+
+# ---------------------------------------------------------------------------
+# Hatch environments and scripts
+# ---------------------------------------------------------------------------
+[tool.hatch.envs.default]
+features = ["dev"]
+
+[tool.hatch.envs.default.scripts]
+lint       = "ruff check ."
+lint-fix   = "ruff check --fix ."
+fmt-check  = "ruff format --check ."
+fmt        = "ruff format ."
+check      = ["ruff check .", "ruff format --check ."]
+fix        = ["ruff check --fix .", "ruff format ."]
+convert    = "python scripts/convert_notebooks.py"
+sync-check = "python scripts/convert_notebooks.py --check"
+all-checks = [
+    "ruff check .",
+    "ruff format --check .",
+    "python scripts/convert_notebooks.py --check",
+]
+
+# ---------------------------------------------------------------------------
+# Ruff
+# ---------------------------------------------------------------------------
+[tool.ruff]
+target-version = "py310"
+line-length    = 100
+exclude = [
+    ".git",
+    "__pycache__",
+    ".ipynb_checkpoints",
+    "*.ipynb",
+    "data_wrangling/solutions",
+    "data_wrangling/notebook_corrected.py",
+    "data_wrangling/use_case.py",
+    "visualizations/plot_2d_separator.py",
+    "visualizations/plot_interactive_forest.py",
+    "datascience_starter_course",
+]
+
+[tool.ruff.lint]
+select = ["E", "W", "F", "UP", "I"]
+ignore = ["E402", "E501", "E703", "F401", "F811", "F821", "F841", "E741"]
+
+[tool.ruff.lint.per-file-ignores]
+"*/notebook*.py"                     = ["I001"]
+"data_leakage/notebook*.py"          = ["I001"]
+"cross_validation/notebook*.py"      = ["I001"]
+"visualizations/trees*.py"           = ["I001"]
+"evaluation_metrics/notebook*.py"    = ["I001"]
+"insurance_time_series/notebook*.py" = ["I001"]
+"us_voting/notebook*.py"             = ["I001"]
+"dimensionality_reduction/notebook*.py" = ["I001"]
+"data_wrangling/notebook*.py"        = ["I001", "E711"]
+"movie lens/notebook*.py"            = ["I001"]
+
+[tool.ruff.lint.isort]
+known-first-party = ["xed"]
+
+[tool.ruff.format]
+quote-style  = "double"
+indent-style = "space"

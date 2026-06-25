@@ -18,14 +18,15 @@
 # %% colab={"base_uri": "https://localhost:8080/"} id="smzP4B7HwQ5k" outputId="46e588e7-d835-4cde-85ec-0a34dd478af9"
 
 # %% id="QNKUn2b1wQ5l"
-import os, sys, subprocess
+import os
+import subprocess
+import sys
 
 # Install the course package and all pinned dependencies.
 # In GitHub Actions CI this step is skipped (pre-installed via pip install -e .[dev]).
-if not os.environ.get('CI'):
+if not os.environ.get("CI"):
     subprocess.run(
-        [sys.executable, '-m', 'pip', 'install', '-q',
-         'git+https://github.com/demianw/Xed.git'],
+        [sys.executable, "-m", "pip", "install", "-q", "git+https://github.com/demianw/Xed.git"],
         check=True,
     )
 
@@ -56,6 +57,7 @@ import matplotlib.pyplot as plt
 
 # %% id="BUg-__bjwQ5l"
 from xed.datasets import load_titanic
+
 data = load_titanic()
 
 # %% [markdown] id="yzsFuEecwQ5l"

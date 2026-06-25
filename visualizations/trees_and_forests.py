@@ -26,14 +26,15 @@
 # %%
 
 # %%
-import os, sys, subprocess
+import os
+import subprocess
+import sys
 
 # Install the course package and all pinned dependencies.
 # In GitHub Actions CI this step is skipped (pre-installed via pip install -e .[dev]).
-if not os.environ.get('CI'):
+if not os.environ.get("CI"):
     subprocess.run(
-        [sys.executable, '-m', 'pip', 'install', '-q',
-         'git+https://github.com/demianw/Xed.git'],
+        [sys.executable, "-m", "pip", "install", "-q", "git+https://github.com/demianw/Xed.git"],
         check=True,
     )
 
@@ -76,6 +77,7 @@ import matplotlib.pyplot as plt
 # A decision tree is a simple binary classification tree that is
 # similar to nearest neighbor classification.  It can be used as follows:
 
+
 # %%
 def make_dataset(n_samples=100):
     rnd = np.random.RandomState(42)
@@ -84,13 +86,14 @@ def make_dataset(n_samples=100):
     y = y_no_noise + rnd.normal(size=len(x))
     return x[:, None], y
 
+
 # %%
 
 X, y = make_dataset()
 
 plt.figure()
-plt.xlabel('Feature X')
-plt.ylabel('Target y')
+plt.xlabel("Feature X")
+plt.ylabel("Target y")
 plt.scatter(X, y)
 
 # %%
@@ -103,9 +106,9 @@ X_fit = np.linspace(-3, 3, 1000).reshape((-1, 1))
 y_fit_1 = reg.predict(X_fit)
 
 plt.figure()
-plt.plot(X_fit.ravel(), y_fit_1, color='tab:blue', label="prediction")
-plt.plot(X.ravel(), y, 'C7.', label="training data")
-plt.legend(loc="best");
+plt.plot(X_fit.ravel(), y_fit_1, color="tab:blue", label="prediction")
+plt.plot(X.ravel(), y, "C7.", label="training data")
+plt.legend(loc="best")
 
 # %% [markdown]
 # A single decision tree allows us to estimate the signal in a non-parametric way,
@@ -135,8 +138,8 @@ clf.fit(X_train, y_train)
 
 plt.figure()
 plot_2d_separator(clf, X, fill=True)
-plt.scatter(X_train[:, 0], X_train[:, 1], c=y_train, s=60, alpha=.7, edgecolor='k')
-plt.scatter(X_test[:, 0], X_test[:, 1], c=y_test, s=60, edgecolor='k');
+plt.scatter(X_train[:, 0], X_train[:, 1], c=y_train, s=60, alpha=0.7, edgecolor="k")
+plt.scatter(X_test[:, 0], X_test[:, 1], c=y_test, s=60, edgecolor="k")
 
 # %% [markdown]
 # There are many parameter that control the complexity of a tree, but the one that might be easiest to understand is the maximum depth. This limits how finely the tree can partition the input space, or how many "if-else" questions can be asked before deciding which class a sample lies in.
@@ -147,7 +150,7 @@ plt.scatter(X_test[:, 0], X_test[:, 1], c=y_test, s=60, edgecolor='k');
 
 # %%
 max_depth = 2
-plot_tree(clf, max_depth=max_depth, filled=True);
+plot_tree(clf, max_depth=max_depth, filled=True)
 
 # %% [markdown]
 # Decision trees are fast to train, easy to understand, and often lead to interpretable models. However, single trees often tend to overfit the training data. Playing with the slider above you might notice that the model starts to overfit even before it has a good separation between the classes.
@@ -169,12 +172,14 @@ plot_tree(clf, max_depth=max_depth, filled=True);
 # a simple inline alternative using sklearn's export_text / plot_tree.
 try:
     from plot_interactive_forest import plot_forest
+
     plot_forest(max_depth=3)
 except ImportError:
     from sklearn.datasets import make_blobs
     from sklearn.ensemble import RandomForestClassifier
     from sklearn.tree import plot_tree
     import matplotlib.pyplot as plt
+
     X_b, y_b = make_blobs(n_samples=300, centers=2, random_state=0)
     rf = RandomForestClassifier(n_estimators=5, max_depth=3, random_state=0)
     rf.fit(X_b, y_b)
@@ -199,8 +204,7 @@ X, y = digits.data, digits.target
 X_train, X_test, y_train, y_test = train_test_split(X, y, random_state=42)
 
 rf = RandomForestClassifier(n_estimators=200)
-parameters = {'max_features':['sqrt', 'log2', 10],
-              'max_depth':[5, 7, 9]}
+parameters = {"max_features": ["sqrt", "log2", 10], "max_depth": [5, 7, 9]}
 
 clf_grid = GridSearchCV(rf, parameters, n_jobs=-1)
 clf_grid.fit(X_train, y_train)
@@ -223,7 +227,8 @@ clf_grid.score(X_test, y_test)
 
 # %%
 from sklearn.ensemble import GradientBoostingRegressor
-clf = GradientBoostingRegressor(n_estimators=100, max_depth=5, learning_rate=.2)
+
+clf = GradientBoostingRegressor(n_estimators=100, max_depth=5, learning_rate=0.2)
 clf.fit(X_train, y_train)
 
 print(clf.score(X_train, y_train))
@@ -266,7 +271,7 @@ print(rf.feature_importances_)  # one value per feature
 
 # %%
 plt.figure()
-plt.imshow(rf.feature_importances_.reshape(8, 8), cmap=plt.cm.viridis, interpolation='nearest')
+plt.imshow(rf.feature_importances_.reshape(8, 8), cmap=plt.cm.viridis, interpolation="nearest")
 
 # %%
 

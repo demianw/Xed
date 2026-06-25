@@ -15,14 +15,15 @@
 # %%
 
 # %%
-import os, sys, subprocess
+import os
+import subprocess
+import sys
 
 # Install the course package and all pinned dependencies.
 # In GitHub Actions CI this step is skipped (pre-installed via pip install -e .[dev]).
-if not os.environ.get('CI'):
+if not os.environ.get("CI"):
     subprocess.run(
-        [sys.executable, '-m', 'pip', 'install', '-q',
-         'git+https://github.com/demianw/Xed.git'],
+        [sys.executable, "-m", "pip", "install", "-q", "git+https://github.com/demianw/Xed.git"],
         check=True,
     )
 
@@ -75,10 +76,11 @@ rng = np.random.RandomState(42)
 
 # %%
 from xed.datasets import load_titanic, load_ames_housing
+
 titanic = load_titanic()
 
-features = titanic.drop(columns='Survived')
-target   = titanic['Survived']
+features = titanic.drop(columns="Survived")
+target = titanic["Survived"]
 
 X_train, X_test, y_train, y_test = train_test_split(
     features, target, test_size=0.20, random_state=42, stratify=target
@@ -88,7 +90,7 @@ print(f"Training samples : {len(X_train)}")
 print(f"Test samples     : {len(X_test)}")
 print()
 print("Class distribution in the test set:")
-print(y_test.value_counts(normalize=True).rename({0: 'Did not survive', 1: 'Survived'}).to_string())
+print(y_test.value_counts(normalize=True).rename({0: "Did not survive", 1: "Survived"}).to_string())
 
 # %% [markdown]
 # About **38 %** of passengers survived and **62 %** did not.
@@ -98,7 +100,7 @@ print(y_test.value_counts(normalize=True).rename({0: 'Did not survive', 1: 'Surv
 # Let us verify this with scikit-learn's `DummyClassifier`:
 
 # %%
-dummy = DummyClassifier(strategy='most_frequent', random_state=42)
+dummy = DummyClassifier(strategy="most_frequent", random_state=42)
 dummy.fit(X_train, y_train)
 dummy_acc = dummy.score(X_test, y_test)
 
@@ -115,26 +117,26 @@ print("This classifier *never* predicts a survivor.")
 # can focus entirely on metrics rather than feature engineering.
 
 # %%
-numeric_features    = ['Age', 'Fare', 'SibSp', 'Parch']
-ordinal_features    = ['Pclass']
-categorical_features = ['Sex', 'Embarked']
+numeric_features = ["Age", "Fare", "SibSp", "Parch"]
+ordinal_features = ["Pclass"]
+categorical_features = ["Sex", "Embarked"]
 
 numeric_transformer = make_pipeline(
-    SimpleImputer(strategy='median'),
+    SimpleImputer(strategy="median"),
     StandardScaler(),
 )
 categorical_transformer = make_pipeline(
-    SimpleImputer(strategy='most_frequent'),
-    OneHotEncoder(handle_unknown='ignore'),
+    SimpleImputer(strategy="most_frequent"),
+    OneHotEncoder(handle_unknown="ignore"),
 )
 ordinal_transformer = make_pipeline(
-    SimpleImputer(strategy='most_frequent'),
+    SimpleImputer(strategy="most_frequent"),
     OrdinalEncoder(),
 )
 
 preprocessor = make_column_transformer(
-    (numeric_transformer,    numeric_features),
-    (ordinal_transformer,    ordinal_features),
+    (numeric_transformer, numeric_features),
+    (ordinal_transformer, ordinal_features),
     (categorical_transformer, categorical_features),
 )
 
@@ -176,11 +178,14 @@ from sklearn.metrics import ConfusionMatrixDisplay
 
 fig, ax = plt.subplots(figsize=(4, 4))
 ConfusionMatrixDisplay.from_estimator(
-    lr_pipeline, X_test, y_test,
-    display_labels=['Did not survive', 'Survived'],
-    colorbar=False, ax=ax,
+    lr_pipeline,
+    X_test,
+    y_test,
+    display_labels=["Did not survive", "Survived"],
+    colorbar=False,
+    ax=ax,
 )
-ax.set_title('Logistic Regression — confusion matrix')
+ax.set_title("Logistic Regression — confusion matrix")
 plt.tight_layout()
 plt.show()
 
@@ -232,10 +237,13 @@ from sklearn.metrics import classification_report
 y_pred_lr = lr_pipeline.predict(X_test)
 
 print("=== Logistic Regression ===")
-print(classification_report(
-    y_test, y_pred_lr,
-    target_names=['Did not survive', 'Survived'],
-))
+print(
+    classification_report(
+        y_test,
+        y_pred_lr,
+        target_names=["Did not survive", "Survived"],
+    )
+)
 
 # %% [markdown]
 # <div class="alert alert-success">
@@ -293,14 +301,17 @@ from sklearn.metrics import RocCurveDisplay
 fig, ax = plt.subplots(figsize=(6, 5))
 
 RocCurveDisplay.from_estimator(
-    lr_pipeline, X_test, y_test,
-    name='Logistic Regression', ax=ax,
+    lr_pipeline,
+    X_test,
+    y_test,
+    name="Logistic Regression",
+    ax=ax,
 )
 
 # Diagonal reference line (random classifier)
-ax.plot([0, 1], [0, 1], 'k--', label='Random (AUC = 0.50)')
-ax.set_title('ROC curve — Titanic survival')
-ax.legend(loc='lower right')
+ax.plot([0, 1], [0, 1], "k--", label="Random (AUC = 0.50)")
+ax.set_title("ROC curve — Titanic survival")
+ax.legend(loc="lower right")
 plt.tight_layout()
 plt.show()
 
@@ -356,15 +367,15 @@ rf_pipeline = make_pipeline(
     RandomForestClassifier(n_estimators=100, random_state=42),
 )
 
-scoring_metrics = ['accuracy', 'f1', 'roc_auc', 'balanced_accuracy']
+scoring_metrics = ["accuracy", "f1", "roc_auc", "balanced_accuracy"]
 results = {}
 
 for metric in scoring_metrics:
     lr_scores = cross_val_score(lr_pipeline, features, target, cv=5, scoring=metric)
     rf_scores = cross_val_score(rf_pipeline, features, target, cv=5, scoring=metric)
     results[metric] = {
-        'Logistic Regression': lr_scores.mean(),
-        'Random Forest':       rf_scores.mean(),
+        "Logistic Regression": lr_scores.mean(),
+        "Random Forest": rf_scores.mean(),
     }
 
 df_results = pd.DataFrame(results).T
@@ -420,18 +431,18 @@ print(df_results.round(3).to_string())
 # %%
 # Load Ames housing and build a reference Ridge pipeline
 ames = load_ames_housing()
-target_ames   = ames['SalePrice']
-features_ames = ames.drop(columns='SalePrice')
+target_ames = ames["SalePrice"]
+features_ames = ames.drop(columns="SalePrice")
 
 X_train_a, X_test_a, y_train_a, y_test_a = train_test_split(
     features_ames, target_ames, test_size=0.20, random_state=42
 )
 
 # Preprocessor for Ames: numeric only for simplicity
-numeric_cols = features_ames.select_dtypes('number').columns.tolist()
+numeric_cols = features_ames.select_dtypes("number").columns.tolist()
 ames_preprocessor = make_column_transformer(
-    (make_pipeline(SimpleImputer(strategy='median'), StandardScaler()), numeric_cols),
-    remainder='drop',
+    (make_pipeline(SimpleImputer(strategy="median"), StandardScaler()), numeric_cols),
+    remainder="drop",
 )
 
 ridge_pipeline = make_pipeline(
@@ -447,12 +458,12 @@ y_pred_ridge = ridge_pipeline.predict(X_test_a)
 # %%
 from sklearn.metrics import mean_absolute_error, root_mean_squared_error, r2_score
 
-mae  = mean_absolute_error(y_test_a, y_pred_ridge)
+mae = mean_absolute_error(y_test_a, y_pred_ridge)
 rmse = root_mean_squared_error(y_test_a, y_pred_ridge)
-r2   = r2_score(y_test_a, y_pred_ridge)
+r2 = r2_score(y_test_a, y_pred_ridge)
 mape = np.mean(np.abs((y_test_a - y_pred_ridge) / y_test_a)) * 100
 
-print(f"Ridge (numeric features only)")
+print("Ridge (numeric features only)")
 print(f"  MAE  : ${mae:,.0f}")
 print(f"  RMSE : ${rmse:,.0f}  ← larger than MAE because of a few big errors")
 print(f"  MAPE : {mape:.1f}%")
@@ -473,17 +484,17 @@ fig, axes = plt.subplots(1, 2, figsize=(12, 4))
 
 # Residuals vs predicted
 axes[0].scatter(y_pred_ridge, residuals, alpha=0.4, s=12)
-axes[0].axhline(0, color='k', linewidth=1)
-axes[0].set_xlabel('Predicted SalePrice ($)')
-axes[0].set_ylabel('Residual ($)')
-axes[0].set_title('Residuals vs Predicted')
+axes[0].axhline(0, color="k", linewidth=1)
+axes[0].set_xlabel("Predicted SalePrice ($)")
+axes[0].set_ylabel("Residual ($)")
+axes[0].set_title("Residuals vs Predicted")
 
 # Distribution of residuals
-axes[1].hist(residuals, bins=50, edgecolor='white')
-axes[1].axvline(0, color='k', linewidth=1)
-axes[1].set_xlabel('Residual ($)')
-axes[1].set_ylabel('Count')
-axes[1].set_title('Distribution of residuals')
+axes[1].hist(residuals, bins=50, edgecolor="white")
+axes[1].axvline(0, color="k", linewidth=1)
+axes[1].set_xlabel("Residual ($)")
+axes[1].set_ylabel("Count")
+axes[1].set_title("Distribution of residuals")
 
 plt.tight_layout()
 plt.show()
@@ -558,7 +569,7 @@ X_imb, y_imb = make_classification(
     n_samples=5000,
     n_features=10,
     n_informative=4,
-    weights=[0.97, 0.03],   # 97 % negative, 3 % positive
+    weights=[0.97, 0.03],  # 97 % negative, 3 % positive
     flip_y=0,
     random_state=42,
 )
@@ -567,9 +578,9 @@ X_train_i, X_test_i, y_train_i, y_test_i = train_test_split(
     X_imb, y_imb, test_size=0.20, random_state=42, stratify=y_imb
 )
 
-print(f"Positive class proportion in test set : {y_test_i.mean()*100:.1f} %")
+print(f"Positive class proportion in test set : {y_test_i.mean() * 100:.1f} %")
 
-dummy_i = DummyClassifier(strategy='most_frequent')
+dummy_i = DummyClassifier(strategy="most_frequent")
 dummy_i.fit(X_train_i, y_train_i)
 print(f"Dummy classifier accuracy             : {dummy_i.score(X_test_i, y_test_i):.3f}")
 
@@ -589,8 +600,7 @@ print("=== Default LogisticRegression ===")
 print(f"Accuracy : {lr_imb.score(X_test_i, y_test_i):.3f}")
 print(f"F1 (positive class) : {f1_score(y_test_i, y_pred_imb):.3f}")
 print()
-print(classification_report(y_test_i, y_pred_imb,
-                             target_names=['Negative', 'Positive']))
+print(classification_report(y_test_i, y_pred_imb, target_names=["Negative", "Positive"]))
 
 # %% [markdown]
 # ### Fixing imbalance with `class_weight='balanced'`
@@ -601,8 +611,9 @@ print(classification_report(y_test_i, y_pred_imb,
 
 # %%
 lr_balanced = LogisticRegression(
-    max_iter=1000, random_state=42,
-    class_weight='balanced',
+    max_iter=1000,
+    random_state=42,
+    class_weight="balanced",
 )
 lr_balanced.fit(X_train_i, y_train_i)
 y_pred_bal = lr_balanced.predict(X_test_i)
@@ -611,8 +622,7 @@ print("=== LogisticRegression(class_weight='balanced') ===")
 print(f"Accuracy : {lr_balanced.score(X_test_i, y_test_i):.3f}")
 print(f"F1 (positive class) : {f1_score(y_test_i, y_pred_bal):.3f}")
 print()
-print(classification_report(y_test_i, y_pred_bal,
-                             target_names=['Negative', 'Positive']))
+print(classification_report(y_test_i, y_pred_bal, target_names=["Negative", "Positive"]))
 
 # %% [markdown]
 # ### The precision-recall curve
@@ -630,22 +640,20 @@ fig, axes = plt.subplots(1, 2, figsize=(12, 4))
 
 # ROC
 from sklearn.metrics import RocCurveDisplay
-RocCurveDisplay.from_estimator(
-    lr_imb, X_test_i, y_test_i, name='Default LR', ax=axes[0])
-RocCurveDisplay.from_estimator(
-    lr_balanced, X_test_i, y_test_i, name='Balanced LR', ax=axes[0])
-axes[0].plot([0, 1], [0, 1], 'k--')
-axes[0].set_title('ROC curve')
+
+RocCurveDisplay.from_estimator(lr_imb, X_test_i, y_test_i, name="Default LR", ax=axes[0])
+RocCurveDisplay.from_estimator(lr_balanced, X_test_i, y_test_i, name="Balanced LR", ax=axes[0])
+axes[0].plot([0, 1], [0, 1], "k--")
+axes[0].set_title("ROC curve")
 
 # Precision-Recall
+PrecisionRecallDisplay.from_estimator(lr_imb, X_test_i, y_test_i, name="Default LR", ax=axes[1])
 PrecisionRecallDisplay.from_estimator(
-    lr_imb, X_test_i, y_test_i, name='Default LR', ax=axes[1])
-PrecisionRecallDisplay.from_estimator(
-    lr_balanced, X_test_i, y_test_i, name='Balanced LR', ax=axes[1])
+    lr_balanced, X_test_i, y_test_i, name="Balanced LR", ax=axes[1]
+)
 no_skill = y_test_i.mean()
-axes[1].axhline(no_skill, color='k', linestyle='--',
-                label=f'No-skill (AP = {no_skill:.2f})')
-axes[1].set_title('Precision-Recall curve')
+axes[1].axhline(no_skill, color="k", linestyle="--", label=f"No-skill (AP = {no_skill:.2f})")
+axes[1].set_title("Precision-Recall curve")
 axes[1].legend()
 
 plt.tight_layout()

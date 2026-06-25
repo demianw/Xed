@@ -13,14 +13,15 @@
 # ---
 
 # %%
-import os, sys, subprocess
+import os
+import subprocess
+import sys
 
 # Install the course package and all pinned dependencies.
 # In GitHub Actions CI this step is skipped (pre-installed via pip install -e .[dev]).
-if not os.environ.get('CI'):
+if not os.environ.get("CI"):
     subprocess.run(
-        [sys.executable, '-m', 'pip', 'install', '-q',
-         'git+https://github.com/demianw/Xed.git'],
+        [sys.executable, "-m", "pip", "install", "-q", "git+https://github.com/demianw/Xed.git"],
         check=True,
     )
 
@@ -82,7 +83,7 @@ from sklearn.feature_selection import SelectKBest, f_classif
 from sklearn.inspection import permutation_importance
 
 rng = np.random.RandomState(42)
-%matplotlib inline
+# %matplotlib inline  # noqa
 
 # %% [markdown]
 # ---
@@ -120,22 +121,22 @@ model_lr = LogisticRegression(max_iter=10_000, random_state=42)
 
 # ── WRONG ──────────────────────────────────────────────────────────────────────
 scaler_global = StandardScaler()
-X_scaled_global = scaler_global.fit_transform(X_bc)   # test fold shifts the mean
-scores_wrong_scaler = cross_val_score(model_lr, X_scaled_global, y_bc,
-                                      cv=cv, scoring='accuracy')
+X_scaled_global = scaler_global.fit_transform(X_bc)  # test fold shifts the mean
+scores_wrong_scaler = cross_val_score(model_lr, X_scaled_global, y_bc, cv=cv, scoring="accuracy")
 
 # ── CORRECT ────────────────────────────────────────────────────────────────────
 pipe_scaler = make_pipeline(
     StandardScaler(),
     LogisticRegression(max_iter=10_000, random_state=42),
 )
-scores_correct_scaler = cross_val_score(pipe_scaler, X_bc, y_bc,
-                                        cv=cv, scoring='accuracy')
+scores_correct_scaler = cross_val_score(pipe_scaler, X_bc, y_bc, cv=cv, scoring="accuracy")
 
 print("StandardScaler leakage on breast-cancer (569 samples, 5 folds)")
 print(f"  Wrong (global scaling) : {scores_wrong_scaler.mean():.4f}")
 print(f"  Correct (pipeline)     : {scores_correct_scaler.mean():.4f}")
-print(f"  Difference             : {scores_wrong_scaler.mean()-scores_correct_scaler.mean():+.4f}")
+print(
+    f"  Difference             : {scores_wrong_scaler.mean() - scores_correct_scaler.mean():+.4f}"
+)
 print()
 print("  The scaler statistics shift by only ~0.0001% when excluding a 20%-fold.")
 print("  Always use Pipeline anyway: the cost is zero, and correctness is a principle.")
@@ -167,35 +168,41 @@ rng_enc = np.random.default_rng(42)
 # Simulate an insurance-style dataset:
 #   500 policyholders, 20 regions, 5 noise features, binary claim outcome.
 n_enc, n_regions = 500, 20
-region_arr  = rng_enc.integers(0, n_regions, n_enc)
-noise_arr   = rng_enc.normal(size=(n_enc, 5))
-region_risk = rng_enc.uniform(0.1, 0.9, n_regions)      # true P(claim) per region
-y_enc       = rng_enc.binomial(1, region_risk[region_arr]).astype(float)
+region_arr = rng_enc.integers(0, n_regions, n_enc)
+noise_arr = rng_enc.normal(size=(n_enc, 5))
+region_risk = rng_enc.uniform(0.1, 0.9, n_regions)  # true P(claim) per region
+y_enc = rng_enc.binomial(1, region_risk[region_arr]).astype(float)
 
-print(f"Dataset: {n_enc} policies, {n_regions} regions, "
-      f"overall claim rate = {y_enc.mean()*100:.1f}%")
+print(
+    f"Dataset: {n_enc} policies, {n_regions} regions, "
+    f"overall claim rate = {y_enc.mean() * 100:.1f}%"
+)
 
 # ── WRONG: compute region mean using all rows, including the test fold ──────
-df_enc = pd.DataFrame(noise_arr, columns=[f'noise_{i}' for i in range(5)])
-df_enc['region'] = region_arr
-df_enc['y']      = y_enc
+df_enc = pd.DataFrame(noise_arr, columns=[f"noise_{i}" for i in range(5)])
+df_enc["region"] = region_arr
+df_enc["y"] = y_enc
 
-global_region_mean = df_enc.groupby('region')['y'].transform('mean')  # leakage!
+global_region_mean = df_enc.groupby("region")["y"].transform("mean")  # leakage!
 X_wrong_enc = np.column_stack([noise_arr, global_region_mean.values])
 
 cv_enc = KFold(n_splits=5, shuffle=True, random_state=42)
 scores_wrong_enc = cross_val_score(
     LogisticRegression(max_iter=500, random_state=42),
-    X_wrong_enc, y_enc, cv=cv_enc, scoring='accuracy',
+    X_wrong_enc,
+    y_enc,
+    cv=cv_enc,
+    scoring="accuracy",
 )
+
 
 # ── CORRECT: compute region mean only from the training fold ────────────────
 def mean_encode_fold(X_df, y_arr, train_idx, test_idx, cat_col, target_col, n_cats):
     """Compute target mean per category using training fold only."""
     X_tr, y_tr = X_df.iloc[train_idx], y_arr[train_idx]
-    X_te        = X_df.iloc[test_idx]
-    fold_means  = y_tr.groupby(X_tr[cat_col]).mean()
-    global_mean = y_tr.mean()   # fallback for unseen categories
+    X_te = X_df.iloc[test_idx]
+    fold_means = y_tr.groupby(X_tr[cat_col]).mean()
+    global_mean = y_tr.mean()  # fallback for unseen categories
     enc_tr = X_tr[cat_col].map(fold_means).fillna(global_mean).values
     enc_te = X_te[cat_col].map(fold_means).fillna(global_mean).values
     noise_cols = [c for c in X_df.columns if c not in (cat_col, target_col)]
@@ -203,11 +210,17 @@ def mean_encode_fold(X_df, y_arr, train_idx, test_idx, cat_col, target_col, n_ca
     Xf_te = np.column_stack([X_te[noise_cols].values, enc_te])
     return Xf_tr, y_tr.values, Xf_te, y_arr[test_idx]
 
+
 scores_correct_enc = []
 for tr_idx, te_idx in cv_enc.split(df_enc, y_enc):
     Xf_tr, yf_tr, Xf_te, yf_te = mean_encode_fold(
-        df_enc, pd.Series(y_enc), tr_idx, te_idx,
-        cat_col='region', target_col='y', n_cats=n_regions,
+        df_enc,
+        pd.Series(y_enc),
+        tr_idx,
+        te_idx,
+        cat_col="region",
+        target_col="y",
+        n_cats=n_regions,
     )
     m = LogisticRegression(max_iter=500, random_state=42)
     m.fit(Xf_tr, yf_tr)
@@ -217,8 +230,10 @@ scores_correct_enc = np.array(scores_correct_enc)
 print()
 print("Mean encoding leakage on simulated insurance data")
 print(f"  Wrong (global encoding)  : {scores_wrong_enc.mean():.4f} ± {scores_wrong_enc.std():.4f}")
-print(f"  Correct (fold encoding)  : {scores_correct_enc.mean():.4f} ± {scores_correct_enc.std():.4f}")
-print(f"  Leakage bias             : {scores_wrong_enc.mean()-scores_correct_enc.mean():+.4f}")
+print(
+    f"  Correct (fold encoding)  : {scores_correct_enc.mean():.4f} ± {scores_correct_enc.std():.4f}"
+)
+print(f"  Leakage bias             : {scores_wrong_enc.mean() - scores_correct_enc.mean():+.4f}")
 
 # %% [markdown]
 # ### 2.3 The pure-noise proof
@@ -231,20 +246,28 @@ print(f"  Leakage bias             : {scores_wrong_enc.mean()-scores_correct_enc
 # %%
 y_noise_enc = rng_enc.integers(0, 2, n_enc).astype(float)  # completely random labels
 
-global_mean_noise = df_enc.assign(y=y_noise_enc).groupby('region')['y'].transform('mean')
+global_mean_noise = df_enc.assign(y=y_noise_enc).groupby("region")["y"].transform("mean")
 X_noise_wrong = np.column_stack([noise_arr, global_mean_noise.values])
 scores_noise_wrong = cross_val_score(
     LogisticRegression(max_iter=500, random_state=42),
-    X_noise_wrong, y_noise_enc, cv=cv_enc, scoring='accuracy',
+    X_noise_wrong,
+    y_noise_enc,
+    cv=cv_enc,
+    scoring="accuracy",
 )
 
 df_noise = df_enc.copy()
-df_noise['y'] = y_noise_enc
+df_noise["y"] = y_noise_enc
 scores_noise_correct = []
 for tr_idx, te_idx in cv_enc.split(df_noise, y_noise_enc):
     Xf_tr, yf_tr, Xf_te, yf_te = mean_encode_fold(
-        df_noise, pd.Series(y_noise_enc), tr_idx, te_idx,
-        cat_col='region', target_col='y', n_cats=n_regions,
+        df_noise,
+        pd.Series(y_noise_enc),
+        tr_idx,
+        te_idx,
+        cat_col="region",
+        target_col="y",
+        n_cats=n_regions,
     )
     m = LogisticRegression(max_iter=500, random_state=42)
     m.fit(Xf_tr, yf_tr)
@@ -254,7 +277,9 @@ scores_noise_correct = np.array(scores_noise_correct)
 print("Mean encoding leakage on PURE NOISE labels (correct answer = 50%)")
 print(f"  Wrong (global encoding)  : {scores_noise_wrong.mean():.4f} ← should be 0.50!")
 print(f"  Correct (fold encoding)  : {scores_noise_correct.mean():.4f} ← back to chance")
-print(f"  Leakage bias             : {scores_noise_wrong.mean()-scores_noise_correct.mean():+.4f}")
+print(
+    f"  Leakage bias             : {scores_noise_wrong.mean() - scores_noise_correct.mean():+.4f}"
+)
 
 # %% [markdown]
 # <div class="alert alert-success">
@@ -300,14 +325,14 @@ print(f"  Leakage bias             : {scores_noise_wrong.mean()-scores_noise_cor
 
 # %%
 n_samples = 100
-n_features = 10_000   # many more features than samples
+n_features = 10_000  # many more features than samples
 
 # Pure noise: neither X nor y contain any real signal
 X_noise = rng.randn(n_samples, n_features)
-y_noise = rng.randint(0, 2, n_samples)   # random binary labels
+y_noise = rng.randint(0, 2, n_samples)  # random binary labels
 
 print(f"X shape: {X_noise.shape}")
-print(f"Class balance: {y_noise.mean()*100:.0f}% positive")
+print(f"Class balance: {y_noise.mean() * 100:.0f}% positive")
 
 # %% [markdown]
 # ### 3.2 The wrong way — select features on the full dataset
@@ -323,8 +348,10 @@ model_noise = LogisticRegression(max_iter=1000, random_state=42)
 scores_fs_wrong = cross_val_score(
     model_noise, X_selected_global, y_noise, cv=cv_noise, scoring="accuracy"
 )
-print(f"Wrong (global feature selection) — accuracy: {scores_fs_wrong.mean():.4f}  "
-      f"± {scores_fs_wrong.std():.4f}")
+print(
+    f"Wrong (global feature selection) — accuracy: {scores_fs_wrong.mean():.4f}  "
+    f"± {scores_fs_wrong.std():.4f}"
+)
 print(">>> This is PURE NOISE data — any accuracy above 0.50 is an artefact!")
 
 # %% [markdown]
@@ -333,15 +360,16 @@ print(">>> This is PURE NOISE data — any accuracy above 0.50 is an artefact!")
 # %%
 # ── CORRECT: selector is re-fitted on each training fold ──────────────────
 pipe_fs_correct = make_pipeline(
-    SelectKBest(f_classif, k=50),
-    LogisticRegression(max_iter=1000, random_state=42)
+    SelectKBest(f_classif, k=50), LogisticRegression(max_iter=1000, random_state=42)
 )
 
 scores_fs_correct = cross_val_score(
     pipe_fs_correct, X_noise, y_noise, cv=cv_noise, scoring="accuracy"
 )
-print(f"Correct (pipeline) — accuracy: {scores_fs_correct.mean():.4f}  "
-      f"± {scores_fs_correct.std():.4f}")
+print(
+    f"Correct (pipeline) — accuracy: {scores_fs_correct.mean():.4f}  "
+    f"± {scores_fs_correct.std():.4f}"
+)
 print(">>> Now we correctly recover chance-level performance.")
 
 # %% [markdown]
@@ -353,7 +381,9 @@ ax.bar(
     ["Wrong\n(global selection)", "Correct\n(pipeline)"],
     [scores_fs_wrong.mean(), scores_fs_correct.mean()],
     yerr=[scores_fs_wrong.std(), scores_fs_correct.std()],
-    color=["#d62728", "#2ca02c"], capsize=8, width=0.4
+    color=["#d62728", "#2ca02c"],
+    capsize=8,
+    width=0.4,
 )
 ax.axhline(0.5, color="k", linestyle="--", linewidth=1, label="Chance level (50%)")
 ax.set_ylim(0, 1.05)
@@ -362,8 +392,10 @@ ax.set_title("Leakage from feature selection on pure-noise data")
 ax.legend()
 plt.tight_layout()
 plt.show()
-print(f"\nBias introduced by leakage: "
-      f"{(scores_fs_wrong.mean() - scores_fs_correct.mean())*100:.1f} percentage points")
+print(
+    f"\nBias introduced by leakage: "
+    f"{(scores_fs_wrong.mean() - scores_fs_correct.mean()) * 100:.1f} percentage points"
+)
 
 # %% [markdown]
 # ### Question 2
@@ -407,8 +439,7 @@ print(f"\nBias introduced by leakage: "
 from sklearn.datasets import make_regression
 
 X_reg, y_reg = make_regression(
-    n_samples=200, n_features=100, n_informative=20,
-    noise=20, random_state=42
+    n_samples=200, n_features=100, n_informative=20, noise=20, random_state=42
 )
 
 cv_reg = KFold(n_splits=5, shuffle=True, random_state=42)
@@ -447,8 +478,8 @@ t = np.arange(n_time)
 signal = np.sin(0.05 * t) + 0.3 * rng.randn(n_time)
 
 # Features: lags 1–5
-lag_features = np.stack([signal[i: n_time - 5 + i] for i in range(5)], axis=1)
-target_ts = signal[5:]           # predict one step ahead
+lag_features = np.stack([signal[i : n_time - 5 + i] for i in range(5)], axis=1)
+target_ts = signal[5:]  # predict one step ahead
 
 print(f"Time-series features: {lag_features.shape}, target: {target_ts.shape}")
 
@@ -462,13 +493,11 @@ model_ts = make_pipeline(StandardScaler(), LinearRegression())
 
 # ── WRONG: random folds ignore temporal order ──────────────────────────────
 cv_random = KFold(n_splits=5, shuffle=True, random_state=42)
-scores_random = cross_val_score(model_ts, lag_features, target_ts,
-                                cv=cv_random, scoring="r2")
+scores_random = cross_val_score(model_ts, lag_features, target_ts, cv=cv_random, scoring="r2")
 
 # ── CORRECT: test folds are always in the future relative to training folds ─
 cv_ts = TimeSeriesSplit(n_splits=5)
-scores_ts = cross_val_score(model_ts, lag_features, target_ts,
-                            cv=cv_ts, scoring="r2")
+scores_ts = cross_val_score(model_ts, lag_features, target_ts, cv=cv_ts, scoring="r2")
 
 print(f"Random KFold  R²: {scores_random.mean():.4f} ± {scores_random.std():.4f}")
 print(f"TimeSeriesSplit R²: {scores_ts.mean():.4f} ± {scores_ts.std():.4f}")
@@ -479,20 +508,18 @@ print(f"TimeSeriesSplit R²: {scores_ts.mean():.4f} ± {scores_ts.std():.4f}")
 # %%
 fig, axes = plt.subplots(2, 1, figsize=(10, 5), sharex=True)
 
-for ax, (cv_obj, title) in zip(axes, [
-    (cv_random, "KFold (WRONG for time series)"),
-    (cv_ts,     "TimeSeriesSplit (CORRECT)")
-]):
+for ax, (cv_obj, title) in zip(
+    axes, [(cv_random, "KFold (WRONG for time series)"), (cv_ts, "TimeSeriesSplit (CORRECT)")]
+):
     for fold, (train_idx, test_idx) in enumerate(cv_obj.split(lag_features)):
-        ax.scatter(train_idx, [fold] * len(train_idx),
-                   marker="|", color="#2ca02c", alpha=0.4, s=10)
-        ax.scatter(test_idx,  [fold] * len(test_idx),
-                   marker="|", color="#d62728", alpha=0.8, s=10)
+        ax.scatter(train_idx, [fold] * len(train_idx), marker="|", color="#2ca02c", alpha=0.4, s=10)
+        ax.scatter(test_idx, [fold] * len(test_idx), marker="|", color="#d62728", alpha=0.8, s=10)
     ax.set_ylabel("Fold")
     ax.set_title(title)
 
 axes[-1].set_xlabel("Time index")
 from matplotlib.lines import Line2D
+
 legend_elements = [
     Line2D([0], [0], color="#2ca02c", lw=3, label="Train"),
     Line2D([0], [0], color="#d62728", lw=3, label="Test"),

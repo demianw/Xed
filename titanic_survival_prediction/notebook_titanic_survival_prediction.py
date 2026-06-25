@@ -18,14 +18,15 @@
 # %% colab={"base_uri": "https://localhost:8080/"} id="smzP4B7HwQ5k" outputId="46e588e7-d835-4cde-85ec-0a34dd478af9"
 
 # %% id="QNKUn2b1wQ5l"
-import os, sys, subprocess
+import os
+import subprocess
+import sys
 
 # Install the course package and all pinned dependencies.
 # In GitHub Actions CI this step is skipped (pre-installed via pip install -e .[dev]).
-if not os.environ.get('CI'):
+if not os.environ.get("CI"):
     subprocess.run(
-        [sys.executable, '-m', 'pip', 'install', '-q',
-         'git+https://github.com/demianw/Xed.git'],
+        [sys.executable, "-m", "pip", "install", "-q", "git+https://github.com/demianw/Xed.git"],
         check=True,
     )
 
@@ -56,6 +57,7 @@ import matplotlib.pyplot as plt
 
 # %% id="BUg-__bjwQ5l"
 from xed.datasets import load_titanic
+
 data = load_titanic()
 
 # %% [markdown] id="yzsFuEecwQ5l"
@@ -95,8 +97,8 @@ data.head()
 # First, we need to split the dataset into 2 arrays: the data array and the classification array.
 
 # %% id="mPN8AHi9wQ5m"
-label = data['Survived']
-data = data.drop(columns='Survived')
+label = data["Survived"]
+data = data.drop(columns="Survived")
 
 # %% [markdown] id="yNbqoYE9wQ5m"
 # Because the data type in the titanic dataset, we need to specifically have different preprocessing for the continuous and categorical columns. The `ColumnTransformer` of scikit-learn allows to dispatch different preprocessing depending of the columns. Usually, the categorical variable needs to be encoded while the continuous variable can be standardized.
@@ -134,6 +136,7 @@ from sklearn.model_selection import cross_val_score, cross_val_predict
 
 # %% id="nI7oJBsBwQ5n"
 from sklearn.model_selection import train_test_split
+
 data_train, data_test, label_train, label_test = train_test_split(
     data, label, test_size=0.20, random_state=42
 )

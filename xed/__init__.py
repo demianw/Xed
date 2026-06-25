@@ -1,7 +1,8 @@
 """
 Xed — Cardiff Introductory Data Science course utilities.
 """
-from importlib.metadata import version, PackageNotFoundError
+
+from importlib.metadata import PackageNotFoundError, version
 
 try:
     __version__ = version("xed")
