@@ -12,15 +12,19 @@
 #     name: python3
 # ---
 
-# %% tags=["remove-cell"]
-import os
-if not os.path.exists("Xed"):
-    os.system("git clone --depth=1 https://github.com/demianw/Xed.git")
-if "data_leakage" not in os.getcwd():
-    os.chdir("Xed/data_leakage")
+# %%
+import os, sys, subprocess
+
+# Install the course package and all pinned dependencies.
+# In GitHub Actions CI this step is skipped (pre-installed via pip install -e .[dev]).
+if not os.environ.get('CI'):
+    subprocess.run(
+        [sys.executable, '-m', 'pip', 'install', '-q',
+         'git+https://github.com/demianw/Xed.git'],
+        check=True,
+    )
 
 # %%
-# %pip install -q scikit-learn==1.9.0 pandas==3.0.3 matplotlib==3.11.0 numpy==2.2.3 pooch
 
 # %% [markdown]
 # # Data Leakage through Incorrect Cross-Validation
@@ -281,7 +285,6 @@ print(f"  Leakage bias             : {scores_noise_wrong.mean()-scores_noise_cor
 
 # %%
 # Your code here
-
 
 # ## 3. A catastrophic leakage example: feature selection outside CV
 #

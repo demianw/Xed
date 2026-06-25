@@ -13,20 +13,24 @@
 # ---
 
 # %%
-# %pip install -q scikit-learn==1.9.0 pandas==3.0.3 matplotlib==3.11.0 seaborn==0.13.2 pooch
 
 # %%
-import os, sys
-# Skip clone/chdir when running under GitHub Actions (already in the right directory).
+import os, sys, subprocess
+
+# Install the course package and all pinned dependencies.
+# In GitHub Actions CI this step is skipped (pre-installed via pip install -e .[dev]).
 if not os.environ.get('CI'):
-    if not os.path.exists('Xed'):
-        os.system('git clone --depth=1 https://github.com/demianw/Xed.git')
-    if 'insurance_time_series' not in os.getcwd():
-        os.chdir('Xed/insurance_time_series')
-# Make `xed.datasets` importable.
-_repo_root = os.path.abspath('..')
-if _repo_root not in sys.path:
-    sys.path.insert(0, _repo_root)
+    subprocess.run(
+        [sys.executable, '-m', 'pip', 'install', '-q',
+         'git+https://github.com/demianw/Xed.git'],
+        check=True,
+    )
+    subprocess.run(
+        [sys.executable, '-m', 'pip', 'install', '-q',
+         'scipy>=1.13',
+         ],
+        check=True,
+    )
 
 # %% [markdown]
 # # Motor Insurance Claims: From Cross-Sectional Modelling to Time-Series Prediction
@@ -178,7 +182,6 @@ print(df_freq['BonusMalus'].describe().to_string())
 # %%
 # Your code here
 
-
 # %% [markdown]
 # ---
 # ## 2. Claim frequency modelling — Poisson regression
@@ -301,7 +304,6 @@ print(f"  Observed freq       : {(y_test      * w_test).sum() / w_test.sum():.5f
 # %%
 # Your code here
 
-
 # %% [markdown]
 # ---
 # ## 3. Claim severity and the pure premium
@@ -378,7 +380,6 @@ print(f"Mean observed  pure premium : €{(y_pp_test * w_pp_test).sum() / w_pp_t
 
 # %%
 # Your code here
-
 
 # %% [markdown]
 # ---
@@ -465,7 +466,6 @@ plt.show()
 
 # %%
 # Your code here
-
 
 # %% [markdown]
 # ---
@@ -601,7 +601,6 @@ def simulate_portfolio(
     panel = panel.sort_values(['policyholder_id', 'month_index']).reset_index(drop=True)
     return panel
 
-
 print("Simulating 600 policyholders × 36 months …")
 panel = simulate_portfolio(poisson_pipe, df_freq, n_policyholders=600, n_months=36)
 print(f"Panel shape : {panel.shape}")
@@ -663,7 +662,6 @@ def add_temporal_features(df: pd.DataFrame) -> pd.DataFrame:
 
     return df
 
-
 panel_feat = add_temporal_features(panel)
 print("New temporal features:")
 print(panel_feat[['policyholder_id', 'month_index', 'calendar_month',
@@ -700,7 +698,6 @@ print(panel_feat[['policyholder_id', 'month_index', 'calendar_month',
 
 # %%
 # Your code here
-
 
 # %% [markdown]
 # ---
@@ -803,7 +800,6 @@ print(f"  Leakage bias    : {scores_kf.mean() - scores_ts.mean():+.4f}")
 # %%
 # Your code here
 
-
 # %% [markdown]
 # ---
 # ## 8. Expected loss: combining frequency and severity
@@ -904,7 +900,6 @@ print(agg.head(10).to_string(index=False))
 
 # %%
 # Your code here
-
 
 # %% [markdown]
 # ---

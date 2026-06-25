@@ -13,19 +13,18 @@
 # ---
 
 # %%
-# %pip install -q scikit-learn==1.9.0 pandas==3.0.3 matplotlib==3.11.0 seaborn==0.13.2 pooch
 
 # %%
-import os, sys
-# Skip clone/chdir when running under GitHub Actions.
+import os, sys, subprocess
+
+# Install the course package and all pinned dependencies.
+# In GitHub Actions CI this step is skipped (pre-installed via pip install -e .[dev]).
 if not os.environ.get('CI'):
-    if not os.path.exists('Xed'):
-        os.system('git clone --depth=1 https://github.com/demianw/Xed.git')
-    if 'us_voting' not in os.getcwd():
-        os.chdir('Xed/us_voting')
-_repo_root = os.path.abspath('..')
-if _repo_root not in sys.path:
-    sys.path.insert(0, _repo_root)
+    subprocess.run(
+        [sys.executable, '-m', 'pip', 'install', '-q',
+         'git+https://github.com/demianw/Xed.git'],
+        check=True,
+    )
 
 # %% [markdown]
 # # US County-Level Presidential Elections: A Large-Scale Classification Problem
@@ -179,7 +178,6 @@ print("      This gap is the urban–rural divide in US politics.")
 # %%
 # Your code here
 
-
 # %% [markdown]
 # ---
 # ## 2. Baseline models and the imbalance problem
@@ -254,7 +252,6 @@ print(classification_report(y_test, y_pred_lr_bal,
 # %%
 # Your code here
 
-
 # %% [markdown]
 # ---
 # ## 3. What drives the prediction? Feature importance
@@ -316,7 +313,6 @@ plt.show()
 
 # %%
 # Your code here
-
 
 # %% [markdown]
 # ---
@@ -396,7 +392,6 @@ print(f"Temporal hold-out balanced accuracy (2012→2016): "
 # %%
 # Your code here
 
-
 # %% [markdown]
 # ---
 # ## 5. Hyperparameter tuning with GridSearchCV
@@ -461,7 +456,6 @@ print(classification_report(y_test, hgb_grid.predict(X_test),
 
 # %%
 # Your code here
-
 
 # %% [markdown]
 # ---

@@ -23,24 +23,24 @@
 # 3. Explain how a random forest reduces variance through bagging and feature sub-sampling.
 # 4. Select optimal tree hyperparameters with `GridSearchCV`.
 
+# %%
 
 # %%
-# %pip install -q scikit-learn==1.9.0 matplotlib==3.11.0 pooch
+import os, sys, subprocess
 
-# %%
-import os
-# Skip clone/chdir when running under GitHub Actions (already in the right directory).
+# Install the course package and all pinned dependencies.
+# In GitHub Actions CI this step is skipped (pre-installed via pip install -e .[dev]).
 if not os.environ.get('CI'):
-    if not os.path.exists('Xed'):
-        os.system('git clone --depth=1 https://github.com/demianw/Xed.git')
-if not os.environ.get('CI') and 'visualizations' not in os.getcwd():
-    os.chdir('Xed/visualizations')
+    subprocess.run(
+        [sys.executable, '-m', 'pip', 'install', '-q',
+         'git+https://github.com/demianw/Xed.git'],
+        check=True,
+    )
 
 # %%
 # %matplotlib inline
 import numpy as np
 import matplotlib.pyplot as plt
-
 
 # %% [markdown]
 # Here we'll explore a class of algorithms based on decision trees.
@@ -84,7 +84,6 @@ def make_dataset(n_samples=100):
     y = y_no_noise + rnd.normal(size=len(x))
     return x[:, None], y
 
-
 # %%
 
 X, y = make_dataset()
@@ -127,7 +126,6 @@ from sklearn.datasets import make_blobs
 from sklearn.model_selection import train_test_split
 from sklearn.tree import DecisionTreeClassifier, plot_tree
 from plot_2d_separator import plot_2d_separator
-
 
 X, y = make_blobs(centers=[[0, 0], [1, 1]], random_state=61526, n_samples=100)
 X_train, X_test, y_train, y_test = train_test_split(X, y, random_state=42)

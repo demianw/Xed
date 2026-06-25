@@ -13,20 +13,18 @@
 # ---
 
 # %% id="KjAyiNwsTLMC"
-# %pip install -q pandas==3.0.3 seaborn==0.13.2 scikit-learn==1.9.0 pooch
 
 # %% id="16wUQ_vATLMD"
-import os, sys
-# Skip clone/chdir when running under GitHub Actions (already in the right directory).
+import os, sys, subprocess
+
+# Install the course package and all pinned dependencies.
+# In GitHub Actions CI this step is skipped (pre-installed via pip install -e .[dev]).
 if not os.environ.get('CI'):
-    if not os.path.exists('Xed'):
-        os.system('git clone --depth=1 https://github.com/demianw/Xed.git')
-    if 'ames_datasets' not in os.getcwd():
-        os.chdir('Xed/ames_datasets')
-# Make `xed.datasets` importable from any subdirectory.
-_repo_root = os.path.abspath('..')
-if _repo_root not in sys.path:
-    sys.path.insert(0, _repo_root)
+    subprocess.run(
+        [sys.executable, '-m', 'pip', 'install', '-q',
+         'git+https://github.com/demianw/Xed.git'],
+        check=True,
+    )
 
 # %% [markdown] id="CbMfJvqNTLMD"
 # # Exploring Real Estate Sales Prices
@@ -207,7 +205,6 @@ from sklearn.inspection import permutation_importance
 
 # %% id="1oK4yWtETLMH"
 from sklearn.model_selection import cross_val_predict
-
 
 # %% [markdown] id="FXLoapDjTLMH"
 # # Section 3: Interpreting the best model

@@ -8,21 +8,48 @@ version = "0.1.0"
 description = "Cardiff Introductory Data Science — course datasets and utilities"
 readme = "README.md"
 requires-python = ">=3.10"
+
+# Core dependencies installed automatically when students run:
+#   pip install git+https://github.com/demianw/Xed.git
 dependencies = [
     "pandas>=3.0",
+    "scikit-learn>=1.9",
+    "matplotlib>=3.11",
+    "seaborn>=0.13",
+    "numpy",
     "pooch>=1.8",
 ]
 
 [project.optional-dependencies]
+# Notebooks that use the R pls package datasets (gasoline NIR)
+chemometrics = [
+    "rdata>=0.9",
+]
+# Insurance / actuarial notebooks (freMTPL2 via fetch_openml)
+insurance = [
+    "scipy>=1.13",
+]
+# Text classification notebook
+text = [
+    "datasets>=2.20",
+    "sentence-transformers>=3",
+    "transformers>=4.44",
+    "torch",
+]
+# Foundation models notebook
+tabular-fm = [
+    "tabpfn",
+    "tabicl",
+]
+# Developer / CI tooling
 dev = [
     "jupytext>=1.19",
     "nbmake",
     "pytest",
-    "scikit-learn>=1.9",
-    "matplotlib>=3.11",
-    "seaborn>=0.13",
     "codespell",
     "pyspelling",
+    "rdata>=0.9",
+    "scipy>=1.13",
 ]
 
 [tool.hatch.build.targets.wheel]

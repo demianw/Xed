@@ -13,20 +13,18 @@
 # ---
 
 # %%
-# %pip install -q scikit-learn==1.9.0 pandas==3.0.3 matplotlib==3.11.0 seaborn==0.13.2 pooch
 
 # %%
-import os, sys
-# Skip clone/chdir when running under GitHub Actions (already in the right directory).
+import os, sys, subprocess
+
+# Install the course package and all pinned dependencies.
+# In GitHub Actions CI this step is skipped (pre-installed via pip install -e .[dev]).
 if not os.environ.get('CI'):
-    if not os.path.exists('Xed'):
-        os.system('git clone --depth=1 https://github.com/demianw/Xed.git')
-    if 'evaluation_metrics' not in os.getcwd():
-        os.chdir('Xed/evaluation_metrics')
-# Make `xed.datasets` importable from any subdirectory.
-_repo_root = os.path.abspath('..')
-if _repo_root not in sys.path:
-    sys.path.insert(0, _repo_root)
+    subprocess.run(
+        [sys.executable, '-m', 'pip', 'install', '-q',
+         'git+https://github.com/demianw/Xed.git'],
+        check=True,
+    )
 
 # %% [markdown]
 # # Evaluation Metrics: Beyond Accuracy
@@ -207,7 +205,6 @@ plt.show()
 # %%
 # Your code here — random forest pipeline and confusion matrix
 
-
 # %% [markdown]
 # ---
 # ## 3. Precision, recall, and F1
@@ -271,7 +268,6 @@ print(classification_report(
 
 # %%
 # Your code here
-
 
 # %% [markdown]
 # ---
@@ -337,7 +333,6 @@ plt.show()
 # %%
 # Your code here
 
-
 # %% [markdown]
 # ---
 # ## 5. Choosing the right scoring metric for cross-validation
@@ -401,7 +396,6 @@ print(df_results.round(3).to_string())
 
 # %%
 # Your code here
-
 
 # %% [markdown]
 # ---
@@ -524,7 +518,6 @@ plt.show()
 # %%
 # Your code here
 
-
 # %% [markdown]
 # <div class="alert alert-success">
 #
@@ -545,7 +538,6 @@ plt.show()
 
 # %%
 # Your code here
-
 
 # %% [markdown]
 # ---
@@ -691,7 +683,6 @@ plt.show()
 
 # %%
 # Your code here
-
 
 # %% [markdown]
 # ---

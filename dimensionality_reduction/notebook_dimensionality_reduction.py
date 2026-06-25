@@ -13,18 +13,24 @@
 # ---
 
 # %%
-# %pip install -q scikit-learn==1.9.0 pandas==3.0.3 matplotlib==3.11.0 seaborn==0.13.2 pooch
 
 # %%
-import os, sys
+import os, sys, subprocess
+
+# Install the course package and all pinned dependencies.
+# In GitHub Actions CI this step is skipped (pre-installed via pip install -e .[dev]).
 if not os.environ.get('CI'):
-    if not os.path.exists('Xed'):
-        os.system('git clone --depth=1 https://github.com/demianw/Xed.git')
-    if 'dimensionality_reduction' not in os.getcwd():
-        os.chdir('Xed/dimensionality_reduction')
-_repo_root = os.path.abspath('..')
-if _repo_root not in sys.path:
-    sys.path.insert(0, _repo_root)
+    subprocess.run(
+        [sys.executable, '-m', 'pip', 'install', '-q',
+         'git+https://github.com/demianw/Xed.git'],
+        check=True,
+    )
+    subprocess.run(
+        [sys.executable, '-m', 'pip', 'install', '-q',
+         'rdata>=0.9',
+         ],
+        check=True,
+    )
 
 # %% [markdown]
 # # Dimensionality Reduction: When and Why It Improves Results
@@ -199,7 +205,6 @@ print(f"Improvement: {best_acc - score_raw_knn:+.3f}")
 # %%
 # Your code here
 
-
 # %% [markdown]
 # ---
 # ## 2. Visualising the principal components: eigenfaces
@@ -271,7 +276,6 @@ print(f"Components to explain 95% variance : {np.searchsorted(cumvar, 95) + 1}")
 
 # %%
 # Your code here
-
 
 # %% [markdown]
 # ---
@@ -374,7 +378,6 @@ for noise_std in [0, 5, 10]:
 
 # %%
 # Your code here
-
 
 # %% [markdown]
 # ---
@@ -561,7 +564,6 @@ print("  3. Robustness to instrument transfer (different spectrometer)")
 # %%
 # Your code here
 
-
 # %% [markdown]
 # ### 4.4 Key comparison: Madelon vs. Gasoline NIR
 #
@@ -652,7 +654,6 @@ print(f"Optimal n_components by CV: {best_n_cv}  "
 # %%
 # Your code here
 
-
 # %% [markdown]
 # ---
 # ## 5. When PCA does NOT help
@@ -705,7 +706,6 @@ print(f"Optimal n_components by CV: {best_n_cv}  "
 
 # %%
 # Your code here
-
 
 # %% [markdown]
 # ---

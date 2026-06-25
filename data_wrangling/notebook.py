@@ -13,20 +13,18 @@
 # ---
 
 # %%
-import os, sys
-# Skip clone/chdir when running under GitHub Actions (already in the right directory).
+import os, sys, subprocess
+
+# Install the course package and all pinned dependencies.
+# In GitHub Actions CI this step is skipped (pre-installed via pip install -e .[dev]).
 if not os.environ.get('CI'):
-    if not os.path.exists('Xed'):
-        os.system('git clone --depth=1 https://github.com/demianw/Xed.git')
-    if 'data_wrangling' not in os.getcwd():
-        os.chdir('Xed/data_wrangling')
-# Make `xed.datasets` importable.
-_repo_root = os.path.abspath('..')
-if _repo_root not in sys.path:
-    sys.path.insert(0, _repo_root)
+    subprocess.run(
+        [sys.executable, '-m', 'pip', 'install', '-q',
+         'git+https://github.com/demianw/Xed.git'],
+        check=True,
+    )
 
 # %%
-# %pip install -q pandas==3.0.3 pooch matplotlib==3.11.0
 
 # %% [markdown]
 # # Data wrangling
@@ -39,7 +37,6 @@ if _repo_root not in sys.path:
 # 3. Compute descriptive statistics and grouped aggregations (`groupby`).
 # 4. Merge DataFrames from multiple sources.
 # 5. Work with time-indexed data using `resample` and datetime indexing.
-
 
 # %% [markdown]
 # This notebook is adapted from Joris Van den Bossche tutorial:

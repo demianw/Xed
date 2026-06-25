@@ -13,8 +13,6 @@
 # ---
 
 # %%
-# %pip install -q scikit-learn==1.9.0 matplotlib==3.11.0 pooch
-
 
 # %% [markdown]
 # # Cross-Validation and scoring methods
@@ -26,7 +24,6 @@
 # 2. Implement k-fold cross-validation from scratch using boolean masks.
 # 3. Use `cross_val_score`, `KFold`, `StratifiedKFold`, and `ShuffleSplit`.
 # 4. Choose the right CV strategy for a given dataset (balanced vs. imbalanced classes).
-
 
 # %% [markdown]
 # In the previous sections and notebooks, we split our dataset into two parts, a training set and a test set. We used the training set to fit our model, and we used the test set to evaluate its generalization performance -- how well it performs on new, unseen data.
@@ -154,7 +151,6 @@ cv = StratifiedKFold(n_splits=5)
 for train, test in cv.split(iris.data, iris.target):
     print(test)
 
-
 # %% [markdown]
 # As you can see, there are a couple of samples from the beginning, then from the middle, and then from the end, in each of the folds.
 # This way, the class ratios are preserved. Let's visualize the split:
@@ -168,7 +164,6 @@ def plot_cv(cv, features, labels):
         masks.append(mask)
     
     plt.matshow(masks, cmap='gray_r')
-
 
 # %%
 plot_cv(StratifiedKFold(n_splits=5), iris.data, iris.target)
