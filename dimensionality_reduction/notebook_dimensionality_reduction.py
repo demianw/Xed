@@ -15,28 +15,7 @@
 # %%
 
 # %%
-import os
-import subprocess
-import sys
-
-# Install the course package and all pinned dependencies.
-# In GitHub Actions CI this step is skipped (pre-installed via pip install -e .[dev]).
-if not os.environ.get("CI"):
-    subprocess.run(
-        [sys.executable, "-m", "pip", "install", "-q", "git+https://github.com/demianw/Xed.git"],
-        check=True,
-    )
-    subprocess.run(
-        [
-            sys.executable,
-            "-m",
-            "pip",
-            "install",
-            "-q",
-            "rdata>=0.9",
-        ],
-        check=True,
-    )
+%pip install -q git+https://github.com/demianw/Xed.git rdata>=0.9
 
 # %% [markdown]
 # # Dimensionality Reduction: When and Why It Improves Results

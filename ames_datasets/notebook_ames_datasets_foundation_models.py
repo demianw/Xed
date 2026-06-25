@@ -14,17 +14,7 @@
 # %% id="MaYbUovVL1ua" colab={"base_uri": "https://localhost:8080/"} outputId="3432bdb7-dba2-4bc0-8532-efc982141ed9"
 
 # %% id="YMnzmNN3L1ub" colab={"base_uri": "https://localhost:8080/"} outputId="8c643698-e4bd-46f8-f7ac-f51a1c69fe40"
-import os
-import subprocess
-import sys
-
-# Install the course package and all pinned dependencies.
-# In GitHub Actions CI this step is skipped (pre-installed via pip install -e .[dev]).
-if not os.environ.get("CI"):
-    subprocess.run(
-        [sys.executable, "-m", "pip", "install", "-q", "git+https://github.com/demianw/Xed.git"],
-        check=True,
-    )
+%pip install -q git+https://github.com/demianw/Xed.git
 
 # %% [markdown] id="3m0k94R4L1ub"
 # # Exploring Real Estate Sales Prices — Foundation Models
@@ -96,7 +86,6 @@ data.head()
 #
 
 # %% id="UZvRr_1sMBzb"
-import os
 
 # %% id="LJdgdW6ML1ud"
 from sklearn.model_selection import cross_val_score

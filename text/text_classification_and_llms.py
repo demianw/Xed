@@ -15,17 +15,7 @@
 # %%
 
 # %%
-import os
-import subprocess
-import sys
-
-# Install the course package and all pinned dependencies.
-# In GitHub Actions CI this step is skipped (pre-installed via pip install -e .[dev]).
-if not os.environ.get("CI"):
-    subprocess.run(
-        [sys.executable, "-m", "pip", "install", "-q", "git+https://github.com/demianw/Xed.git"],
-        check=True,
-    )
+%pip install -q git+https://github.com/demianw/Xed.git
 
 # %% [markdown]
 # # Text Classification and LLMs: From TF-IDF to Zero-Shot Prompting
@@ -367,68 +357,72 @@ print(f"Train embeddings shape: {train_embeddings.shape}")
 # would give even better accuracy but take slightly longer.
 #
 # > **This section is OPTIONAL.** It downloads a model from Hugging Face on
-# > first run (~350 MB).  It is **CI-guarded** — it will be skipped when the
-# > notebook is executed under `nbmake` in GitHub Actions.
+# > first run (~350 MB).  If the model cannot be downloaded (e.g. no network or
+# > `llama-cpp-python` is not installed), the cell will skip gracefully.
 
 # %%
-if not os.environ.get("CI"):
+try:
+    from huggingface_hub import try_to_load_from_cache
     from llama_cpp import Llama
     from tqdm import tqdm
     import time
 
-    MODEL_PATH = (
-        "Qwen/Qwen2.5-0.5B-Instruct-GGUF",
-        "qwen2.5-0.5b-instruct-q4_k_m.gguf",
-    )
+    MODEL_REPO = "Qwen/Qwen2.5-0.5B-Instruct-GGUF"
+    MODEL_FILE = "qwen2.5-0.5b-instruct-q4_k_m.gguf"
 
-    print("Loading Qwen2.5-0.5B via llama.cpp …")
-    t0 = time.time()
-    llm = Llama.from_pretrained(
-        repo_id=MODEL_PATH[0],
-        filename=MODEL_PATH[1],
-        n_ctx=512,
-        n_threads=8,
-        verbose=False,
-    )
-    print(f"Model loaded in {time.time() - t0:.1f}s")
-
-    # Working example prompt — not empty string!
-    system_prompt = (
-        'You are a sentiment classifier. '
-        'Answer only with "positive" or "negative".'
-    )
-
-    # Use a small subset for demo (not all 1000 test samples)
-    n_demo = 50
-    test_texts = data["test"]["text"][:n_demo]
-    y_true = data["test"]["label"][:n_demo]
-
-    y_pred = []
-    t0 = time.time()
-    for text in tqdm(test_texts):
-        prompt = (
-            f"<|im_start|>system\n{system_prompt}<|im_end|>\n"
-            f"<|im_start|>user\nIs this movie review positive or negative? "
-            f"Review: {text}<|im_end|>\n<|im_start|>assistant\n"
+    cached = try_to_load_from_cache(MODEL_REPO, MODEL_FILE)
+    if cached is None:
+        print(
+            "Qwen2.5 model not cached. Run this cell manually to download "
+            f"{MODEL_REPO}/{MODEL_FILE} (~350 MB) and run the demo."
         )
-        output = llm(prompt, max_tokens=10, temperature=0, stop=["<|im_end|>"])
-        response = output["choices"][0]["text"].strip().lower()
-        if "positive" in response:
-            y_pred.append(1)
-        elif "negative" in response:
-            y_pred.append(0)
-        else:
-            y_pred.append(0)  # default to negative for unexpected output
+    else:
+        print("Loading Qwen2.5-0.5B via llama.cpp …")
+        t0 = time.time()
+        llm = Llama.from_pretrained(
+            repo_id=MODEL_REPO,
+            filename=MODEL_FILE,
+            n_ctx=512,
+            n_threads=8,
+            verbose=False,
+        )
+        print(f"Model loaded in {time.time() - t0:.1f}s")
 
-    elapsed = time.time() - t0
+        system_prompt = (
+            'You are a sentiment classifier. '
+            'Answer only with "positive" or "negative".'
+        )
 
-    from sklearn.metrics import accuracy_score
+        n_demo = 50
+        test_texts = data["test"]["text"][:n_demo]
+        y_true = data["test"]["label"][:n_demo]
 
-    acc = accuracy_score(y_true, y_pred)
-    print(f"\nQwen2.5-0.5B zero-shot accuracy (on {n_demo} samples): {acc:.2f}")
-    print(f"Total time: {elapsed:.1f}s  ({elapsed / n_demo:.2f}s per review)")
-else:
-    print("Skipping Qwen2.5 demo in CI (requires model download).")
+        y_pred = []
+        t0 = time.time()
+        for text in tqdm(test_texts):
+            prompt = (
+                f"<|im_start|>system\n{system_prompt}<|im_end|>\n"
+                f"<|im_start|>user\nIs this movie review positive or negative? "
+                f"Review: {text}<|im_end|>\n<|im_start|>assistant\n"
+            )
+            output = llm(prompt, max_tokens=10, temperature=0, stop=["<|im_end|>"])
+            response = output["choices"][0]["text"].strip().lower()
+            if "positive" in response:
+                y_pred.append(1)
+            elif "negative" in response:
+                y_pred.append(0)
+            else:
+                y_pred.append(0)
+
+        elapsed = time.time() - t0
+
+        from sklearn.metrics import accuracy_score
+
+        acc = accuracy_score(y_true, y_pred)
+        print(f"\nQwen2.5-0.5B zero-shot accuracy (on {n_demo} samples): {acc:.2f}")
+        print(f"Total time: {elapsed:.1f}s  ({elapsed / n_demo:.2f}s per review)")
+except Exception as e:
+    print(f"Skipping Qwen2.5 demo (model not available): {e}")
 
 # %% [markdown]
 # <div class="alert alert-success">

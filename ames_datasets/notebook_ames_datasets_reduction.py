@@ -15,17 +15,7 @@
 # %% id="MaYbUovVL1ua"
 
 # %% id="YMnzmNN3L1ub"
-import os
-import subprocess
-import sys
-
-# Install the course package and all pinned dependencies.
-# In GitHub Actions CI this step is skipped (pre-installed via pip install -e .[dev]).
-if not os.environ.get("CI"):
-    subprocess.run(
-        [sys.executable, "-m", "pip", "install", "-q", "git+https://github.com/demianw/Xed.git"],
-        check=True,
-    )
+%pip install -q git+https://github.com/demianw/Xed.git
 
 # %% [markdown] id="3m0k94R4L1ub"
 # # Exploring Real Estate Sales Prices — Dimensionality Reduction

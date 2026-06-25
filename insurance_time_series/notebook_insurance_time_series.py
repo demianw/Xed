@@ -15,28 +15,7 @@
 # %%
 
 # %%
-import os
-import subprocess
-import sys
-
-# Install the course package and all pinned dependencies.
-# In GitHub Actions CI this step is skipped (pre-installed via pip install -e .[dev]).
-if not os.environ.get("CI"):
-    subprocess.run(
-        [sys.executable, "-m", "pip", "install", "-q", "git+https://github.com/demianw/Xed.git"],
-        check=True,
-    )
-    subprocess.run(
-        [
-            sys.executable,
-            "-m",
-            "pip",
-            "install",
-            "-q",
-            "scipy>=1.13",
-        ],
-        check=True,
-    )
+%pip install -q git+https://github.com/demianw/Xed.git scipy>=1.13
 
 # %% [markdown]
 # # Motor Insurance Claims: From Cross-Sectional Modelling to Time-Series Prediction
@@ -140,9 +119,8 @@ print("Loading freMTPL2sev …")
 ds_sev = fetch_openml(data_id=41215, as_frame=True, parser="auto")
 df_sev = ds_sev.frame
 
-# In CI, subsample to keep execution time reasonable
-if os.environ.get("CI"):
-    df_freq = df_freq.sample(n=50_000, random_state=42).reset_index(drop=True)
+# Subsample for faster demo execution (full dataset has 678K rows)
+df_freq = df_freq.sample(n=50_000, random_state=42).reset_index(drop=True)
 
 print(f"\nFrequency dataset : {df_freq.shape[0]:,} rows × {df_freq.shape[1]} columns")
 print(f"Severity dataset  : {df_sev.shape[0]:,} rows × {df_sev.shape[1]} columns")
