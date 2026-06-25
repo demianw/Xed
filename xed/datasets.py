@@ -134,6 +134,21 @@ _REGISTRY: dict[str, tuple[str, str, str]] = {
         "MIT Election Data and Science Lab. "
         "https://github.com/MEDSL/2018-elections-unoffical",
     ),
+    # ------------------------------------------------------------------
+    # Gasoline NIR spectroscopy dataset
+    # 60 gasoline samples × 401 NIR wavelengths (900–1700 nm, step 2 nm)
+    # + octane number target.  Classic p >> n chemometrics benchmark.
+    # Source: Kalivas (1997), Chemometrics and Intelligent Laboratory Systems.
+    # Served as the pls_2.8-3.tar.gz CRAN package archive.
+    # ------------------------------------------------------------------
+    "pls_2.8-3.tar.gz": (
+        "https://cran.r-project.org/src/contrib/Archive/pls/pls_2.8-3.tar.gz",
+        "e6eb728dd38cd4867698df06e02601ed767e69098b1daadde5beef634ae66be3",
+        "Kalivas, J.H. (1997). Two data sets of near infrared spectra. "
+        "Chemometrics and Intelligent Laboratory Systems, 37, 255-259. "
+        "Bundled in the pls R package (Mevik & Wehrens 2007). "
+        "https://cran.r-project.org/package=pls",
+    ),
 }
 
 
@@ -459,6 +474,96 @@ def load_us_county_elections(verbose: bool = True) -> pd.DataFrame:
     """
     path = _fetch("election-context-2018.csv", verbose=verbose)
     return pd.read_csv(path)
+
+
+
+def load_gasoline_nir(verbose: bool = True) -> pd.DataFrame:
+    """
+    Load the Gasoline NIR spectroscopy dataset.
+
+    Returns a DataFrame with 60 rows (one per gasoline sample) and 402 columns:
+    401 NIR absorbance readings at wavelengths 900, 902, …, 1700 nm
+    (column names ``NIR_900nm``, ``NIR_902nm``, …, ``NIR_1700nm``)
+    and one target column ``octane`` (octane number, range 83.4–89.6).
+
+    **This is a classic p >> n chemometrics dataset**: 60 samples and 401
+    features.  Adjacent wavelength channels are extremely highly correlated
+    (mean |r| ≈ 0.69 across all pairs), making it an ideal case for
+    Principal Component Regression (PCA + OLS).
+
+    The dataset is extracted from the ``gasoline.RData`` file bundled with
+    the R ``pls`` package (Mevik & Wehrens 2007), downloaded from the CRAN
+    archive.  The extraction requires the ``rdata`` package
+    (``pip install rdata``); it is performed automatically on first call.
+
+    The data is downloaded once and cached at::
+
+        ~/.cache/xed_datasets/pls_2.8-3.tar.gz
+
+    Parameters
+    ----------
+    verbose : bool
+        Print download progress when the file is not yet cached.
+
+    Returns
+    -------
+    pd.DataFrame
+        60 rows × 402 columns.
+
+    Source
+    ------
+    Kalivas, J.H. (1997). Two data sets of near infrared spectra.
+    Chemometrics and Intelligent Laboratory Systems, 37, 255-259.
+    Bundled in: Mevik, B.-H. & Wehrens, R. (2007). The pls Package:
+    Principal Component and Partial Least Squares Regression in R.
+    Journal of Statistical Software, 18(2).
+    """
+    try:
+        import rdata as _rdata
+    except ImportError as e:
+        raise ImportError(
+            "The 'rdata' package is required to parse the gasoline dataset.\n"
+            "Install it with:  pip install rdata"
+        ) from e
+
+    import tarfile as _tarfile
+    import io as _io
+    import numpy as _np
+
+    tarball_path = _fetch("pls_2.8-3.tar.gz", verbose=verbose)
+
+    with _tarfile.open(str(tarball_path), mode="r:gz") as tf:
+        rdata_bytes = tf.extractfile("pls/data/gasoline.RData").read()
+
+    parsed = _rdata.parser.parse_data(rdata_bytes)
+
+    # Walk the R object tree and collect numpy arrays
+    arrays: list = []
+
+    def _walk(obj: object, depth: int = 0) -> None:
+        if depth > 12:
+            return
+        val = getattr(obj, "value", None)
+        if isinstance(val, _np.ndarray):
+            arrays.append(val.copy())
+        elif val is not None and hasattr(val, "__iter__") and not isinstance(val, (str, bytes)):
+            for item in val:
+                if hasattr(item, "value"):
+                    _walk(item, depth + 1)
+
+    _walk(parsed.object)
+
+    if len(arrays) < 2:
+        raise RuntimeError("Could not extract arrays from gasoline.RData.")
+
+    octane = arrays[0]           # shape (60,)
+    nir_flat = arrays[1]         # shape (24060,) — column-major (R convention)
+    NIR = nir_flat.reshape(401, 60).T  # → (60, 401)
+
+    wavelengths = range(900, 1702, 2)  # 900, 902, …, 1700 nm (401 values)
+    df = pd.DataFrame(NIR, columns=[f"NIR_{wl}nm" for wl in wavelengths])
+    df["octane"] = octane
+    return df
 
 
 def show_registry() -> None:
