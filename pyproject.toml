@@ -7,9 +7,10 @@ name = "xed"
 version = "0.1.0"
 description = "Cardiff Introductory Data Science — course datasets and utilities"
 readme = "README.md"
-requires-python = ">=3.10"
+requires-python = ">=3.12"
 dependencies = [
     "pandas>=3.0",
+    "pip>=26.1.2",
     "pooch>=1.8",
 ]
 
