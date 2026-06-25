@@ -10,7 +10,7 @@ name = "xed"
 version = "0.1.0"
 description = "Cardiff Introductory Data Science — course datasets and utilities"
 readme = "README.md"
-requires-python = ">=3.11"
+requires-python = ">=3.12"
 
 # Core dependencies installed when a student runs:
 #   pip install git+https://github.com/demianw/Xed.git
