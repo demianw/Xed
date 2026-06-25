@@ -384,7 +384,9 @@ if not os.environ.get("CI"):
     pipe = tpipeline("text2text-generation", model="google/flan-t5-small", device=device)
 
     # Working example prompt — not empty string!
-    prompt = "Is this movie review positive or negative? Answer with 'positive' or 'negative'. Review: "
+    prompt = (
+        "Is this movie review positive or negative? Answer with 'positive' or 'negative'. Review: "
+    )
     llm_response = data.map(lambda example: {"t5": prompt + example["text"]})
 
     # Use a small subset for demo (not all 1000 test samples)
