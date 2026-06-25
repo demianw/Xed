@@ -33,8 +33,7 @@
 # ## 1. Download and import the dataset.
 
  # %% id="qwKHxrqb4FN5"
- # %pip install -q -U datasets sentence-transformers transformers torch
-
+ 
 # %% id="HheXxTsD46Po"
 from datasets import load_dataset
 import pandas as pd
@@ -100,7 +99,6 @@ from sklearn.model_selection import (
 # %% id="oPArG-cwnsu_"
 from sklearn.decomposition import PCA, KernelPCA
 
-
 # %% id="k-Wf_M_ins0k"
 
 # %% [markdown] id="zOYW8dJkCqmC"
@@ -154,7 +152,6 @@ data_df = pd.DataFrame(data["test"])
 # Set up the prompt that we will ask to the T5 llm. How are you going to ask ?
 prompt = "" # Ask here if the text is positive or negative, try different formulations
 llm_response = data.map(lambda example: {"t5": prompt + example['text']})
-
 
 # %% id="GYCMdj01-sku"
 # Run the prompt for every record and store the result

@@ -12,20 +12,18 @@
 # ---
 
 # %% id="MaYbUovVL1ua" colab={"base_uri": "https://localhost:8080/"} outputId="3432bdb7-dba2-4bc0-8532-efc982141ed9"
-# %pip install -q seaborn==0.13.2 scikit-learn==1.9.0 tabpfn tabicl pooch
 
 # %% id="YMnzmNN3L1ub" colab={"base_uri": "https://localhost:8080/"} outputId="8c643698-e4bd-46f8-f7ac-f51a1c69fe40"
-import os, sys
-# Skip clone/chdir when running under GitHub Actions (already in the right directory).
+import os, sys, subprocess
+
+# Install the course package and all pinned dependencies.
+# In GitHub Actions CI this step is skipped (pre-installed via pip install -e .[dev]).
 if not os.environ.get('CI'):
-    if not os.path.exists('Xed'):
-        os.system('git clone --depth=1 https://github.com/demianw/Xed.git')
-    if 'ames_datasets' not in os.getcwd():
-        os.chdir('Xed/ames_datasets')
-# Make `xed.datasets` importable from any subdirectory.
-_repo_root = os.path.abspath('..')
-if _repo_root not in sys.path:
-    sys.path.insert(0, _repo_root)
+    subprocess.run(
+        [sys.executable, '-m', 'pip', 'install', '-q',
+         'git+https://github.com/demianw/Xed.git'],
+        check=True,
+    )
 
 # %% [markdown] id="3m0k94R4L1ub"
 # # Exploring Real Estate Sales Prices — Foundation Models
@@ -106,7 +104,6 @@ from sklearn.model_selection import cross_val_score
 from tabpfn import TabPFNRegressor
 from tabicl import TabICLRegressor
 from tabpfn.constants import ModelVersion
-
 
 # %% id="OVNfu6t-M8Gy"
 # Use the free foundation model for TabPFN

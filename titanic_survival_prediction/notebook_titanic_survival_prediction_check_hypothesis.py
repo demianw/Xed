@@ -16,20 +16,18 @@
 # # Exploration of the Titanic data set
 
 # %% colab={"base_uri": "https://localhost:8080/"} id="smzP4B7HwQ5k" outputId="46e588e7-d835-4cde-85ec-0a34dd478af9"
-# %pip install -q pandas==3.0.3 seaborn==0.13.2 scikit-learn==1.9.0 pooch
 
 # %% id="QNKUn2b1wQ5l"
-import os, sys
-# Skip clone/chdir when running under GitHub Actions (already in the right directory).
+import os, sys, subprocess
+
+# Install the course package and all pinned dependencies.
+# In GitHub Actions CI this step is skipped (pre-installed via pip install -e .[dev]).
 if not os.environ.get('CI'):
-    if not os.path.exists('Xed'):
-        os.system('git clone --depth=1 https://github.com/demianw/Xed.git')
-    if 'titanic_survival_prediction' not in os.getcwd():
-        os.chdir('Xed/titanic_survival_prediction')
-# Make `xed.datasets` importable from any subdirectory.
-_repo_root = os.path.abspath('..')
-if _repo_root not in sys.path:
-    sys.path.insert(0, _repo_root)
+    subprocess.run(
+        [sys.executable, '-m', 'pip', 'install', '-q',
+         'git+https://github.com/demianw/Xed.git'],
+        check=True,
+    )
 
 # %% id="SbWLzPLpwQ5l"
 import pandas as pd
