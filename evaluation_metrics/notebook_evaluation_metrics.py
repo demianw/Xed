@@ -184,7 +184,7 @@ plt.show()
 # %% [markdown]
 # <div class="alert alert-success">
 #
-# <b>EXERCISE 1 — Reading the confusion matrix</b>
+# <b>EXERCISE 1a — Reading and interpreting the confusion matrix</b>
 # <ul>
 #   <li>
 #     Read the four values (TN, FP, FN, TP) from the confusion matrix printed
@@ -192,9 +192,28 @@ plt.show()
 #     FP or FN — do you think is more costly, and why?
 #   </li>
 #   <li>
-#     Now train a <code>RandomForestClassifier(n_estimators=100, random_state=42)</code>
+#     How many survivors did the logistic regression model fail to identify?
+#     How many non-survivors were incorrectly flagged as survivors?
+#   </li>
+# </ul>
+# </div>
+
+# %%
+# Your code here — inspect and interpret the confusion matrix values
+
+# %% [markdown]
+# <div class="alert alert-success">
+#
+# <b>EXERCISE 1b — Train and compare a classifier</b>
+# <ul>
+#   <li>
+#     Train a <code>RandomForestClassifier(n_estimators=100, random_state=42)</code>
 #     inside the same preprocessing pipeline and display its confusion matrix.
-#     Where does the random forest make fewer mistakes than logistic regression?
+#   </li>
+#   <li>
+#     Compare the two confusion matrices side by side. Where does the random
+#     forest make fewer mistakes than logistic regression? Where does it make
+#     more? Which error type (FP or FN) improved the most?
 #   </li>
 # </ul>
 # </div>
@@ -222,6 +241,29 @@ plt.show()
 # the model more *conservative* — it predicts "survived" less often, raising
 # precision but lowering recall. Decreasing it has the opposite effect.
 # The `classification_report` function prints all three metrics at once:
+
+# %% [markdown]
+# ### Intuition: precision vs. recall
+#
+# - **Precision** answers: *"When we predict survivor, how often are we
+#   correct?"* It penalises **false alarms** (false positives). A high-precision
+#   model only raises the alarm when it is confident.
+# - **Recall** answers: *"Of all actual survivors, how many did we correctly
+#   find?"* It penalises **missed cases** (false negatives). A high-recall model
+#   catches as many true survivors as possible, even at the cost of some false
+#   alarms.
+#
+# Two extreme strategies illustrate the trade-off:
+#
+# - **High precision + low recall** → a *conservative* model that only predicts
+#   "survived" when very sure. It rarely cries wolf, but it misses many real
+#   survivors.
+# - **High recall + low precision** → an *aggressive* model that flags almost
+#   everyone as "survived". It finds most real survivors but raises many false
+#   alarms.
+#
+# Neither extreme is universally best — the right balance depends on the
+# relative cost of false positives vs. false negatives in your application.
 
 # %%
 from sklearn.metrics import classification_report
@@ -332,6 +374,34 @@ plt.show()
 #   </li>
 # </ul>
 # </div>
+
+# %% [markdown]
+# ### Plotting the ROC curve for `LinearSVC`
+#
+# `LinearSVC` does **not** expose `predict_proba` — it is a support-vector
+# machine that outputs a signed *decision function* (distance to the
+# hyperplane) rather than a probability. To draw its ROC curve, tell
+# `RocCurveDisplay.from_estimator` to use that decision function as the ranking
+# score:
+#
+# ```python
+# from sklearn.pipeline import make_pipeline
+# from sklearn.svm import LinearSVC
+#
+# svc_pipeline = make_pipeline(preprocessor, LinearSVC(random_state=42))
+# svc_pipeline.fit(X_train, y_train)
+#
+# RocCurveDisplay.from_estimator(
+#     svc_pipeline, X_test, y_test,
+#     response_method="decision_function",
+#     name="LinearSVC",
+# )
+# ```
+#
+# The `response_method="decision_function"` argument tells sklearn to rank
+# predictions by the raw decision value instead of a probability. Any
+# classifier exposing `decision_function` (SVC, SGDClassifier, etc.) can be
+# plotted this way.
 
 # %%
 # Your code here
@@ -554,6 +624,9 @@ plt.show()
 # manufacturing. The Titanic imbalance (38 / 62 %) is mild. The following
 # simulation shows what happens with a **severe** imbalance.
 
+# %% [markdown]
+# ### 7a. Imbalanced simulation setup
+
 # %%
 from sklearn.datasets import make_classification
 
@@ -595,7 +668,7 @@ print()
 print(classification_report(y_test_i, y_pred_imb, target_names=["Negative", "Positive"]))
 
 # %% [markdown]
-# ### Fixing imbalance with `class_weight='balanced'`
+# ### 7b. The `class_weight='balanced'` solution
 #
 # The `class_weight='balanced'` parameter tells the model to weight each sample
 # by the inverse frequency of its class. Minority-class samples count more in the
@@ -617,13 +690,30 @@ print()
 print(classification_report(y_test_i, y_pred_bal, target_names=["Negative", "Positive"]))
 
 # %% [markdown]
-# ### The precision-recall curve
+# ### 7c. PR curves for imbalanced data
 #
 # For severely imbalanced data the ROC curve can be misleadingly optimistic
 # because FPR (the x-axis) stays small even when the model makes many FP errors
 # relative to the positive class. The **precision-recall (PR) curve** is more
 # informative: it plots precision vs. recall across all thresholds, and its area
 # (Average Precision, AP) is a better summary statistic for imbalanced problems.
+
+# %% [markdown]
+# ### Why ROC is misleading for imbalanced data
+#
+# The ROC x-axis is the **false positive rate**:
+# $\text{FPR} = \frac{FP}{FP + TN}$. When the negative class is huge (say 97 % of
+# the data), even a *large* number of false positives is still a *tiny*
+# fraction of all negatives — so FPR stays close to zero and the ROC curve
+# looks excellent. Meanwhile **precision** — which divides by $TP + FP$, not by
+# the negative total — collapses because the same FP count dwarfs the handful
+# of true positives.
+#
+# In short: ROC rewards the model for being right on the easy majority class,
+# hiding how badly it performs on the rare class that actually matters. The
+# **PR curve** removes this illusion by plotting precision directly, so it
+# reflects the real cost of false alarms relative to the positive class. Use
+# PR (and Average Precision) whenever the positive class is rare.
 
 # %%
 from sklearn.metrics import PrecisionRecallDisplay
@@ -732,6 +822,34 @@ plt.show()
 # Scenario 2:
 # Scenario 3:
 # Scenario 4:
+
+# %% [markdown]
+# ---
+# ## Metric selection workflow
+#
+# Use this decision flowchart to pick the right metric for your problem:
+#
+# 1. **Balanced data + equal error costs** → start with **accuracy**. It is
+#    simple, interpretable, and sufficient when no class dominates and no error
+#    type is especially costly.
+# 2. **Imbalanced data** → switch to **F1** (single threshold) or **AUC-ROC**
+#    (threshold-independent). Both summarise performance on the minority class
+#    far better than accuracy.
+# 3. **Different false-positive vs. false-negative costs** → do not rely on a
+#    single threshold. **Customise the decision threshold** on the precision-recall
+#    curve and report **precision and recall** (or their weighted combination) so
+#    stakeholders can see the trade-off explicitly.
+# 4. **Severe imbalance (< 5 % positive)** → use **Average Precision** (PR-AUC)
+#    instead of ROC-AUC, because ROC hides poor minority-class performance when
+#    the negative class is huge.
+# 5. **Regression** → start with **RMSE** (penalises large errors). Switch to
+#    **MAE** if a few outliers dominate RMSE and you care about typical error
+#    size. Report **R²** when you need a scale-free measure of explained
+#    variance, and **MAPE** when stakeholders want percentage errors.
+#
+# The common thread: **match the metric to the business cost**, not to
+# convenience. A metric that hides the errors you care about is worse than no
+# metric at all.
 
 # %% [markdown]
 # ---
