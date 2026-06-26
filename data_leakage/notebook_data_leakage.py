@@ -91,6 +91,17 @@ rng = np.random.RandomState(42)
 # | Mean encoding (group-mean of target) | **Yes — directly** | Large, clearly visible |
 # | `SelectKBest(f_classif)` | **Yes — uses labels** | Catastrophic (Section 3) |
 #
+# #### Why `SelectKBest(f_classif)` leaks
+#
+# `f_classif` computes ANOVA F-statistics using **all** the data, including the
+# test fold's labels.  The feature selection "sees" the test labels and picks
+# features that correlate with them — even if that correlation is spurious.
+# When the selector is fitted globally before CV, every test fold has already
+# influenced which features survive, so the downstream classifier is scored on
+# a feature set that was *chosen using the answers*.  The result is a
+# catastrophic inflation of accuracy, as Section 3 demonstrates on pure-noise
+# data where no real signal exists.
+#
 # ### 2.1 Why StandardScaler leakage is nearly invisible
 #
 # `StandardScaler` leakage is theoretically real: the test fold's feature values
@@ -345,6 +356,15 @@ print(
 print(">>> This is PURE NOISE data — any accuracy above 0.50 is an artefact!")
 
 # %% [markdown]
+# #### Baseline expectation
+#
+# This dataset has **no true signal** — any accuracy significantly above 50%
+# is due to leakage, not learning.  Without leakage, we expect ~50% accuracy
+# (random chance for binary classification).  Keep this baseline in mind when
+# interpreting the scores below: a correct pipeline should hover around chance,
+# while a leaky pipeline can climb well above it.
+
+# %% [markdown]
 # ### 3.3 The correct way — feature selection inside the pipeline
 
 # %%
@@ -533,7 +553,32 @@ plt.show()
 
 # %% [markdown]
 # ---
-# ## 6. Leakage checklist
+# ## 6. Diagnosing leakage after the fact
+#
+# Sometimes you inherit a model or a notebook and suspect leakage but cannot
+# re-run the original experiment.  The following signs are strong indicators
+# that leakage has inflated the reported performance:
+#
+# 1. **Performance seems too good to be true.**  If a simple model beats a
+#    well-established benchmark by a large margin on a hard task, suspect
+#    leakage before celebrating.
+# 2. **CV variance is much lower than expected.**  Leakage often stabilises
+#    scores across folds because the leaky preprocessing injects the same
+#    information into every fold.
+# 3. **Test score >> train score.**  A model that generalises *better* than it
+#    fits is a classic red flag — it usually means the test set was seen
+#    during training-time preprocessing.
+# 4. **Feature importance concentrates on a single "leaky" feature.**  If one
+#    feature dominates and it was derived from the target (e.g. an encoding,
+#    an ID, or a future-looking statistic), that feature is the leak channel.
+#
+# If you observe these signs, audit your pipeline for any preprocessing,
+# encoding, or feature selection performed outside the CV loop, and move it
+# inside a `Pipeline`.
+
+# %% [markdown]
+# ---
+# ## 7. Leakage checklist
 #
 # Before trusting any cross-validated performance estimate, go through this
 # checklist:
@@ -579,6 +624,17 @@ plt.show()
 
 # %%
 # Paste your corrected version here
+
+# %% [markdown]
+# **Hint 1.** There are 3 transformations happening outside the CV pipeline.
+
+# %% [markdown]
+# **Hint 2.** `StandardScaler`, `PCA`, and `SelectKBest` should each be inside
+# the `Pipeline`.
+
+# %% [markdown]
+# **Hint 3.** The fix is to wrap all preprocessing in a single `Pipeline`
+# before `cross_val_score`.
 
 # %% [markdown]
 # ### Exercise B — Quantify the damage
