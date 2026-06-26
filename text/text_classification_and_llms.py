@@ -15,7 +15,7 @@
 # %%
 
 # %%
-%pip install -q --prefer-wheel git+https://github.com/demianw/Xed.git
+%pip install -q --only-binary llama-cpp-python git+https://github.com/demianw/Xed.git
 
 # %% [markdown]
 # # Text Classification and LLMs: From TF-IDF to Zero-Shot Prompting
