@@ -45,6 +45,8 @@ from xed.datasets import load_ames_housing
 #
 # Load the Ames housing dataset using `pandas`. It is located in `datasets/ames_housing.csv`. Using the function `head()` and `info()`, which issues do you identify which need to be noted before to learn a machine learning model.
 #
+# Look for: missing values (how many per column?), incorrect data types, columns with mostly one value, outliers in numerical columns, skewed target distribution.
+#
 # The dataset is described in https://jse.amstat.org/v19n3/decock/DataDocumentation.txt
 
 # %% id="kGgXJnP_TLME"
@@ -87,7 +89,7 @@ selection_target.shape
 
 # %% [markdown] id="5wXKF68YTLMF"
 # ### Question 1
-# Use a Column Transformer to _just select_ the numerical variables. Build a linear regressor using `sklearn.linear.LinearRegressor
+# Use a Column Transformer to _just select_ the numerical variables. Build a linear regressor using `sklearn.linear_model.LinearRegression`
 #
 # For this we will
 # * build the column transformer
@@ -138,7 +140,7 @@ from sklearn.model_selection import learning_curve
 from sklearn.linear_model import Ridge
 
 # %% [markdown] id="2Gp9AvC5TLMG"
-# ### Question 6.1
+# ### Question 7
 # How did you pick your regularization parameter? Use a grid search now. https://scikit-learn.org/stable/modules/generated/sklearn.model_selection.GridSearchCV.html
 #
 
@@ -146,13 +148,13 @@ from sklearn.linear_model import Ridge
 from sklearn.model_selection import GridSearchCV
 
 # %% [markdown] id="_ioYT-bjTLMG"
-# ### Question 7
+# ### Question 8
 # Do we need all features? Repeat the previous analysis from Question 6 but with the Lasso which enforces sparsity https://scikit-learn.org/stable/modules/generated/sklearn.linear_model.Lasso.html
 
 # %% id="1xm7gylUTLMG"
 
 # %% [markdown] id="fZ-FAFJJTLMG"
-# ### Question 8
+# ### Question 9
 #
 # Now we will repeat the same analysis but with the categorical variables. For which we will use the `OneHotEncoder` and the `OrdinalEncoder`
 # * https://scikit-learn.org/stable/modules/generated/sklearn.preprocessing.OneHotEncoder.html
@@ -164,7 +166,7 @@ from sklearn.model_selection import GridSearchCV
 from sklearn.preprocessing import OneHotEncoder, OrdinalEncoder
 
 # %% [markdown] id="WecnTk7WTLMG"
-# ## Question 9
+# ## Question 10
 #
 # Non linearity! Now use the RandomForestRegressor https://scikit-learn.org/stable/modules/generated/sklearn.ensemble.RandomForestRegressor.html to fit and predict the data. The two hyper-parameters that you will use are
 #
@@ -177,7 +179,7 @@ from sklearn.preprocessing import OneHotEncoder, OrdinalEncoder
 from sklearn.ensemble import RandomForestRegressor
 
 # %% [markdown] id="Vp7TWN4xTLMG"
-# ## Question 10
+# ## Question 11
 #
 # We will now use the data to obtain
 # Use permutation feature importance to assess which are the most important features in predicting house pricing https://scikit-learn.org/stable/modules/permutation_importance.html
@@ -188,7 +190,7 @@ from sklearn.ensemble import RandomForestRegressor
 from sklearn.inspection import permutation_importance
 
 # %% [markdown] id="hvMdqT0ETLMH"
-# ## Question 11
+# ## Question 12
 #
 # Pick one of the estimators. Use cross_val_predict to evaluate the quality of the prediction in different cases.
 #
