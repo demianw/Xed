@@ -37,6 +37,16 @@ import matplotlib.pyplot as plt
 # 2. Compare foundation models to classical pipelines using learning curves.
 # 3. Understand why TabPFN has a row-count limit and what that implies for evaluation.
 
+# %% [markdown]
+# **Zero-shot tabular prediction**
+#
+# TabPFN is a "foundation model" for tabular data — pre-trained on thousands of
+# datasets so it can predict on new data without task-specific training. Unlike
+# sklearn models (which learn from scratch on each dataset), TabPFN performs
+# zero-shot inference: give it a training set and it predicts on test data using
+# its pre-trained knowledge. This works best for small datasets (≤1000 rows) and
+# standardized features.
+
 # ## 1. Exploration
 
 # %% [markdown] id="Od8ovn9zL1uc"
