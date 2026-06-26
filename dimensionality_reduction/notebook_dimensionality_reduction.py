@@ -116,6 +116,53 @@ plt.show()
 # %% [markdown]
 # ### 1.1 The curse of dimensionality: why raw pixels fail KNN
 #
+# **Definition.**  The *curse of dimensionality* refers to the empirical and
+# theoretical fact that, as the number of features *p* grows, the volume of the
+# feature space grows exponentially while the data occupies a vanishingly small
+# fraction of it.  For distance-based methods this has a concrete consequence:
+# in high dimensions the ratio of the *farthest* to the *nearest* neighbour
+# distance converges to 1, so every point looks equally far away and
+# neighbourhoods become meaningless.  The figure of merit is the ratio
+# n_samples / n_features; when it is small (here 400 / 4096 ≈ 0.1) KNN, KDE,
+# and other density estimators lose the signal-to-noise contrast that makes
+# them work in low dimensions.
+
+# %% [markdown]
+# ### PCA vs. feature selection
+#
+# Both PCA and feature selection reduce dimensionality, but they do so in
+# fundamentally different ways.  **Feature selection** keeps a *subset* of the
+# original variables, preserving their physical meaning (a wavelength stays a
+# wavelength, a pixel stays a pixel).  **PCA** builds *new* variables — linear
+# combinations of all originals — that are orthogonal and ordered by variance.
+#
+# Choose **feature selection** when the original features are individually
+# interpretable and you want a sparse, auditable model (e.g. clinical risk
+# scores where each retained variable must be justifiable).  Choose **PCA**
+# when features are highly correlated, individually uninformative, or when the
+# downstream model is distance-based and suffers from the curse of
+# dimensionality.  PCA is also preferable when *n ≪ p* because it projects onto
+# the subspace actually spanned by the data, avoiding overfitting to noise
+# directions that feature selection cannot detect.  The two approaches can be
+# combined: PCA first, then selection on the components.
+
+# %% [markdown]
+# ### When PCA helps vs. hurts — a decision table
+#
+# | PCA **helps** when … | PCA **hurts** when … |
+# |-----------------------|-----------------------|
+# | n_samples / n_features < 5 (curse of dimensionality) | n ≫ p and features are already informative and uncorrelated |
+# | Features are highly correlated (redundancy) | Features are independent and each carries distinct signal |
+# | Downstream model is distance-based (KNN, KDE, RBF-SVM) | Downstream model is a linear classifier/regressor with regularisation |
+# | Data = low-rank signal + isotropic noise (denoising) | Signal is spread evenly across all directions |
+# | You need visualisation in 2-D / 3-D | You need interpretable, auditable individual features |
+# | p > n (chemometrics, genomics) | p ≪ n and the model already generalises well |
+#
+# **Rule of thumb:** try PCA when at least two of the "helps" conditions hold,
+# and always validate the number of components by cross-validation rather than
+# by the explained-variance threshold alone.
+
+# %% [markdown]
 # KNN measures **Euclidean distance** between every pair of images.
 # In 4 096 dimensions, almost all pairwise distances become similar —
 # the "signal" distances (same person, different expression) are swamped
@@ -169,10 +216,18 @@ print(f"Raw pixel baseline:                       accuracy = {score_raw_knn:.3f}
 print(f"Improvement: {best_acc - score_raw_knn:+.3f}")
 
 # %% [markdown]
-# **Why does whitening help?**  Standard PCA scales all PCs by the data's spread,
-# so the first PC (face "brightness") dominates distances.  Whitening rescales
-# every PC to unit variance so KNN treats identity-discriminating variation
-# equally regardless of its total variance.
+# **Why does whitening help KNN?**  Standard PCA rotates the data but keeps the
+# variance of each component, so PC 1 (overall face "brightness") dwarfs PC 30
+# (a subtle identity-discriminating direction).  KNN uses Euclidean distance,
+# which sums squared coordinate differences; a single high-variance component
+# therefore dominates the distance and masks the discriminative signal carried
+# by lower-variance components.  **Whitening** rescales every component to unit
+# variance, so each direction contributes equally to the distance.  This
+# restores the signal-to-noise contrast that the curse of dimensionality
+# erased: identity information spread across many small-variance PCs becomes
+# visible to KNN again.  The gain is largest when the discriminative signal is
+# *not* aligned with the highest-variance directions — exactly the case for
+# faces, where lighting dominates variance but identity does not.
 
 # %% [markdown]
 # <div class="alert alert-success">
@@ -219,25 +274,31 @@ fig.suptitle("Eigenfaces — the first 23 principal components", fontsize=11)
 plt.tight_layout()
 plt.show()
 
-# Scree plot
-fig, axes = plt.subplots(1, 2, figsize=(11, 4))
+# Scree plot — individual variance per principal component
+fig, ax = plt.subplots(figsize=(8, 4))
 n_show = len(pca_vis.explained_variance_ratio_)
-axes[0].bar(range(1, n_show + 1), pca_vis.explained_variance_ratio_ * 100)
-axes[0].set_xlabel("Principal component")
-axes[0].set_ylabel("Explained variance (%)")
-axes[0].set_title("Scree plot (individual variance per PC)")
+ax.bar(range(1, n_show + 1), pca_vis.explained_variance_ratio_ * 100)
+ax.set_xlabel("Principal component")
+ax.set_ylabel("Explained variance (%)")
+ax.set_title("Scree plot (individual variance per PC)")
+plt.tight_layout()
+plt.show()
 
+# %%
+# Cumulative explained variance with 80 / 90 / 95 % thresholds
 pca_full = PCA(random_state=42).fit(X_faces)
 cumvar = np.cumsum(pca_full.explained_variance_ratio_) * 100
-axes[1].plot(range(1, len(cumvar) + 1), cumvar)
+
+fig, ax = plt.subplots(figsize=(8, 4))
+ax.plot(range(1, len(cumvar) + 1), cumvar)
 for threshold in [80, 90, 95]:
     n_th = np.searchsorted(cumvar, threshold) + 1
-    axes[1].axhline(threshold, color="grey", linestyle=":", linewidth=0.8)
-    axes[1].axvline(n_th, color="grey", linestyle=":", linewidth=0.8)
-    axes[1].annotate(f"{threshold}% @ {n_th} PCs", xy=(n_th + 2, threshold - 2), fontsize=8)
-axes[1].set_xlabel("Number of components")
-axes[1].set_ylabel("Cumulative explained variance (%)")
-axes[1].set_title("Cumulative explained variance")
+    ax.axhline(threshold, color="grey", linestyle=":", linewidth=0.8)
+    ax.axvline(n_th, color="grey", linestyle=":", linewidth=0.8)
+    ax.annotate(f"{threshold}% @ {n_th} PCs", xy=(n_th + 2, threshold - 2), fontsize=8)
+ax.set_xlabel("Number of components")
+ax.set_ylabel("Cumulative explained variance (%)")
+ax.set_title("Cumulative explained variance")
 plt.tight_layout()
 plt.show()
 
@@ -648,6 +709,22 @@ print(
 )
 
 # %% [markdown]
+# ### Kernel PCA — intuition
+#
+# Linear PCA assumes the data lies near a low-dimensional *flat* (linear)
+# subspace.  When the true structure is a *curved* manifold — think of a
+# Swiss roll, or face images varying smoothly along pose and expression —
+# linear PCA flattens the curve and needs many components to approximate
+# what is intrinsically low-dimensional.  **Kernel PCA** applies the
+# kernel trick: it implicitly maps the data into a high-dimensional feature
+# space via a non-linear kernel (e.g. RBF) and performs PCA *there*.  The
+# result is a set of non-linear principal components in the original space,
+# which can unwrap the manifold with far fewer components than linear PCA.
+# The price is an *n × n* Gram matrix (memory O(n²)) and a kernel bandwidth
+# `gamma` that must be tuned — Kernel PCA is most useful when *n* is moderate
+# (hundreds to a few thousand) and the signal is genuinely non-linear.
+
+# %% [markdown]
 # <div class="alert alert-success">
 #
 # <b>EXERCISE 5 — Kernel PCA for non-linear structure</b>
@@ -705,23 +782,45 @@ print(
 # %% [markdown]
 # <div class="alert alert-success">
 #
-# <b>EXERCISE 6 — Summary experiments</b>
+# <b>EXERCISE 6a — Faces + SVM comparison</b>
 # <ul>
 #   <li>
-#     <b>Faces + SVM.</b>  Fit <code>SVC(kernel='rbf', C=10, gamma='scale')</code>
+#     Fit <code>SVC(kernel='rbf', C=10, gamma='scale')</code>
 #     on the raw Olivetti faces (4096 features) and then on
 #     <code>PCA(30, whiten=True)</code> projected faces.
 #     Add both to the summary table above.  Does PCA help SVM?
 #   </li>
+# </ul>
+# </div>
+
+# %%
+# Your code here
+
+# %% [markdown]
+# <div class="alert alert-success">
+#
+# <b>EXERCISE 6b — Ames Housing exploratory PCA</b>
+# <ul>
 #   <li>
-#     <b>Ames Housing.</b>  Load the Ames housing dataset
+#     Load the Ames housing dataset
 #     (<code>from xed.datasets import load_ames_housing</code>).
 #     Apply PCA to the <em>numeric</em> columns (after imputation and scaling)
 #     and compare Ridge regression accuracy (R²) with and without PCA
 #     for n_components ∈ {10, 20, 30, 40}.  Does PCA improve regression here?
 #   </li>
+# </ul>
+# </div>
+
+# %%
+# Your code here
+
+# %% [markdown]
+# <div class="alert alert-success">
+#
+# <b>EXERCISE 6c — PCA decision rules</b>
+# <ul>
 #   <li>
-#     <b>Rule of thumb.</b>  Based on everything above, write a 3-sentence
+#     Based on everything above, write a 3-sentence
 #     "when to try PCA" guideline for a junior data scientist, with a
 #     decision criterion expressed in terms of the ratio n_samples/n_features.
 #   </li>
