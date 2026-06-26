@@ -595,7 +595,7 @@ plt.show()
 
 # %% [markdown]
 # ---
-# ## 7. Summary exercises
+# ## 8. Summary exercises
 #
 # ### Exercise A — Diagnose the bug
 #
