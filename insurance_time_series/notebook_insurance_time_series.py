@@ -149,26 +149,47 @@ print(df_freq["BonusMalus"].describe().to_string())
 # %% [markdown]
 # <div class="alert alert-success">
 #
-# <b>EXERCISE 1 — Exploratory analysis</b>
+# <b>EXERCISE 1a — Claim frequency by driver age</b>
 # <ul>
 #   <li>
-#     <b>Claim frequency by driver age.</b> Bin <code>DrivAge</code> into the groups
-#     18–24, 25–34, 35–49, 50–64, 65–79, 80+ using <code>pd.cut</code>.
-#     For each group compute the <em>exposure-weighted</em> claim frequency:
-#     <code>ClaimNb.sum() / Exposure.sum()</code>.
-#     Plot as a bar chart.  Which age groups are riskiest?  Does this match
-#     your intuition about motor insurance pricing?
+#     Bin <code>DrivAge</code> into the groups 18–24, 25–34, 35–49, 50–64, 65–79, 80+
+#     using <code>pd.cut</code>.  For each group compute the <em>exposure-weighted</em>
+#     claim frequency: <code>ClaimNb.sum() / Exposure.sum()</code>.  Plot as a bar
+#     chart.  Which age groups are riskiest?  Does this match your intuition about
+#     motor insurance pricing?
 #   </li>
+# </ul>
+# </div>
+
+# %%
+# Your code here
+
+# %% [markdown]
+# <div class="alert alert-success">
+#
+# <b>EXERCISE 1b — BonusMalus as a risk signal</b>
+# <ul>
 #   <li>
-#     <b>BonusMalus as a risk signal.</b> Bin <code>BonusMalus</code> into deciles.
-#     For each decile compute the exposure-weighted claim frequency.
-#     Is BonusMalus a monotone predictor of risk?  Plot frequency vs BonusMalus decile.
+#     Bin <code>BonusMalus</code> into deciles.  For each decile compute the
+#     exposure-weighted claim frequency.  Is BonusMalus a monotone predictor of
+#     risk?  Plot frequency vs BonusMalus decile.
 #   </li>
+# </ul>
+# </div>
+
+# %%
+# Your code here
+
+# %% [markdown]
+# <div class="alert alert-success">
+#
+# <b>EXERCISE 1c — Urban vs rural risk</b>
+# <ul>
 #   <li>
-#     <b>Urban vs rural risk.</b> The <code>Area</code> column runs from A (rural) to F
-#     (dense urban).  Compute claim frequency and mean severity
-#     (joining with <code>df_sev</code> on <code>IDpol</code>) for each area band.
-#     Is the urban risk premium mainly driven by frequency, severity, or both?
+#     The <code>Area</code> column runs from A (rural) to F (dense urban).
+#     Compute claim frequency and mean severity (joining with <code>df_sev</code>
+#     on <code>IDpol</code>) for each area band.  Is the urban risk premium mainly
+#     driven by frequency, severity, or both?
 #   </li>
 # </ul>
 # </div>
@@ -180,15 +201,18 @@ print(df_freq["BonusMalus"].describe().to_string())
 # ---
 # ## 2. Claim frequency modelling — Poisson regression
 #
-# The actuarial standard model for claim counts is the **Poisson GLM with log link**:
+# The actuarial standard model for claim counts is the **Poisson GLM with log link**.
+#
+# **Why an exposure offset?**  A policy observed for only 6 months (Exposure = 0.5)
+# should be expected to produce half as many claims as one observed for a full year,
+# *before* any feature effects.  This is the core actuarial intuition: claim counts
+# scale linearly with time on risk.  In scikit-learn this is handled by dividing the
+# target by exposure and passing `sample_weight=exposure` to the regressor —
+# equivalent to fitting on the **frequency** $y_i = \text{ClaimNb}_i / \text{Exposure}_i$.
+#
+# The model that implements this intuition is:
 #
 # $$\mathbb{E}[\text{ClaimNb}_i] = \text{Exposure}_i \cdot \exp(\mathbf{x}_i^\top \boldsymbol{\beta})$$
-#
-# The **exposure offset** is key: a policy observed for only 6 months (Exposure = 0.5)
-# should be expected to produce half as many claims as one observed for a full year,
-# *before* any feature effects.  In scikit-learn this is handled by dividing the target
-# by exposure and passing `sample_weight=exposure` to the regressor — equivalent to
-# fitting on the **frequency** $y_i = \text{ClaimNb}_i / \text{Exposure}_i$.
 #
 # The `PoissonRegressor` minimises the **Poisson deviance** (not MSE), which is the
 # correct loss for count data with many zeros and a skewed distribution.
@@ -328,6 +352,26 @@ df_merged["ClaimAmount"] = df_merged["ClaimAmount"].fillna(0.0)
 
 # Pure premium target: total claim amount per unit of exposure
 y_pp = df_merged["ClaimAmount"] / df_merged["Exposure"]
+
+# %% [markdown]
+# ### 3.1 Why Tweedie power = 1.5?
+#
+# Tweedie distributions bridge discrete and continuous: **power=1** is Poisson
+# (count data), **power=2** is Gamma (continuous positive), and **1 < power < 2**
+# is compound Poisson-Gamma — ideal for zero-inflated continuous data like
+# insurance claims (many zeros + positive claim amounts).
+#
+# The compound Poisson-Gamma mechanism works as follows: a Poisson draw decides
+# *how many* claims occur, then each claim amount is drawn from a Gamma
+# distribution and the amounts are summed. The result is a distribution with a
+# point mass at zero (no claims) and a continuous, right-skewed tail for the
+# positive claim totals — exactly the shape of `ClaimAmount / Exposure`.
+#
+# Setting `power=1.5` therefore lets a single GLM model the **pure premium**
+# directly, avoiding the need to fit frequency and severity separately and
+# multiply them. The closer `power` is to 1, the more count-like the variance;
+# the closer to 2, the more continuous. The 1.5 choice is the standard actuarial
+# compromise for motor insurance.
 
 X_pp = df_merged.drop(columns=["IDpol", "ClaimNb", "Exposure", "ClaimAmount"])
 w_pp = df_merged["Exposure"]
@@ -655,13 +699,19 @@ def add_temporal_features(df: pd.DataFrame) -> pd.DataFrame:
 
     # Lag features (shift by 1 so there is no same-month leakage)
     df["prev_claim"] = grp.shift(1).fillna(0).astype(int)
-    df["claims_3m"] = (
-        grp.shift(1)
-        .rolling(window=3, min_periods=1)
-        .sum()
-        .reset_index(level=0, drop=True)
-        .fillna(0)
-    )
+
+    # claims_3m: number of claims in the past 3 months, computed in named steps.
+    # Step 1 — shift by 1 month within each policyholder to avoid same-month leakage,
+    #          then fill the first month's NaN with 0 (no prior history available).
+    shifted = grp.shift(1).fillna(0)
+    # Step 2 — build a 3-month rolling window (min_periods=1 so the first two months
+    #          still get a partial sum rather than NaN).
+    rolling = shifted.rolling(window=3, min_periods=1)
+    # Step 3 — sum the window and drop the groupby index level so the result aligns
+    #          with the original row order of df.
+    df["claims_3m"] = rolling.sum().reset_index(level=0, drop=True)
+
+    # claims_12m: same construction with a 12-month window (input to the BM update rule).
     df["claims_12m"] = (
         grp.shift(1)
         .rolling(window=12, min_periods=1)
