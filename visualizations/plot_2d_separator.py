@@ -1,7 +1,6 @@
 import numpy as np
 import matplotlib.pyplot as plt
 
-
 def plot_2d_separator(classifier, X, fill=False, ax=None, eps=None):
     if eps is None:
         eps = X.std() / 2.
@@ -35,7 +34,6 @@ def plot_2d_separator(classifier, X, fill=False, ax=None, eps=None):
     ax.set_ylim(y_min, y_max)
     ax.set_xticks(())
     ax.set_yticks(())
-
 
 if __name__ == '__main__':
     from sklearn.datasets import make_blobs

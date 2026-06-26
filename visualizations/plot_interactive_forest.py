@@ -6,7 +6,6 @@ from sklearn.ensemble import RandomForestClassifier
 
 X, y = make_blobs(centers=[[0, 0], [1, 1]], random_state=61526, n_samples=50)
 
-
 def plot_forest(max_depth=1):
     plt.figure()
     ax = plt.gca()
@@ -30,7 +29,6 @@ def plot_forest(max_depth=1):
     ax.set_ylim(y_min, y_max)
     ax.set_xticks(())
     ax.set_yticks(())
-
 
 def plot_forest_interactive():
     from ipywidgets import interactive, IntSlider

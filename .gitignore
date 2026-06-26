@@ -1,0 +1,21 @@
+# Ignore ipynb checkpoints
+**/.ipynb_checkpoints/
+# Keep generated .ipynb files in version control
+# (they are needed for the Colab links to work)
+__pycache__
+uv.lock
+
+# Coding agent config files (not project-specific)
+CLAUDE.md
+GEMINI.md
+AGENTS.md
+opencode.jsonc
+opencode.json
+.opencode/
+.omo/
+.claude/
+.cursor/
+.continue/
+.aider*
+.windsurfrules
+.github/copilot-instructions.md

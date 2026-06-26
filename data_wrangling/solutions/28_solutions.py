@@ -1,2 +1,2 @@
-df_departments = pd.read_csv(os.path.join('data', 'departments.csv'))
+df_departments = load_french_departments()
 df_departments.head()

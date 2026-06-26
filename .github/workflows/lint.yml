@@ -1,0 +1,85 @@
+name: Lint and format
+
+on:
+  push:
+    branches: [main, improvements]
+    paths:
+      - "**/*.py"
+      - "**/*.ipynb"
+      - "pyproject.toml"
+      - ".github/workflows/lint.yml"
+  pull_request:
+    branches: [main]
+
+# ──────────────────────────────────────────────────────────────────────────────
+# Three jobs, each independent so failures are reported separately:
+#
+#  1. ruff-check   — PEP 8 and pyflakes violations (ruff check)
+#  2. ruff-format  — formatting consistency        (ruff format --check)
+#  3. sync-check   — every .ipynb matches its .py  (scripts/convert_notebooks.py)
+#
+# All three must pass before the test-notebooks workflow runs
+# (enforced via the `needs:` key in test_notebooks.yml).
+# ──────────────────────────────────────────────────────────────────────────────
+
+jobs:
+
+  # ── 1. ruff lint ────────────────────────────────────────────────────────────
+  ruff-check:
+    name: ruff check (PEP 8 + pyflakes)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: pip
+
+      - name: Install ruff
+        run: pip install "ruff>=0.8"
+
+      - name: Run ruff check
+        # Configuration is read from [tool.ruff] in pyproject.toml.
+        # Exit code 1 = violations found; exit code 0 = all clear.
+        run: ruff check .
+
+  # ── 2. ruff format ──────────────────────────────────────────────────────────
+  ruff-format:
+    name: ruff format (code style)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: pip
+
+      - name: Install ruff
+        run: pip install "ruff>=0.8"
+
+      - name: Check formatting
+        # --check exits 1 if any file would be reformatted.
+        # Run  hatch run fmt  (or  ruff format .)  locally to auto-fix.
+        run: ruff format --check .
+
+  # ── 3. notebook sync ────────────────────────────────────────────────────────
+  sync-check:
+    name: Notebook .py ↔ .ipynb sync
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: pip
+
+      - name: Install jupytext
+        run: pip install "jupytext>=1.19"
+
+      - name: Verify notebooks are in sync
+        # Fails if any .ipynb is missing or differs from its .py source.
+        # Run  hatch run convert  (or  python scripts/convert_notebooks.py)  to fix.
+        run: python scripts/convert_notebooks.py --check

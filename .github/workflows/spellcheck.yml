@@ -1,0 +1,35 @@
+name: Spell check
+
+on:
+  push:
+    branches: [main, improvements]
+    paths:
+      - "**/*.py"
+      - "**/*.md"
+      - ".codespellrc"
+  pull_request:
+    branches: [main]
+
+# ──────────────────────────────────────────────────────────────────────────────
+# Two complementary passes:
+#
+#  1. codespell  — fast, dictionary-based check on all source files.
+#                  Catches the common typos (teh, hte, recieve, …) in both
+#                  code comments and Markdown prose.
+#
+# Both steps use an ignore-list (.codespellrc / .aspell.en.pws) to suppress
+# false positives from technical terms (sklearn, ipynb, ndarray, …).
+# ──────────────────────────────────────────────────────────────────────────────
+
+jobs:
+  codespell:
+    name: codespell (typo scan)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Run codespell
+        uses: codespell-project/actions-codespell@v2
+        with:
+          # Point at the config file in the repo root.
+          config_file: .codespellrc

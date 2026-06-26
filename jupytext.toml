@@ -1,0 +1,4 @@
+# Pair each notebook .ipynb with a .py source file (percent format).
+# Edit the .py file; the .ipynb is generated automatically.
+# See https://jupytext.readthedocs.io/en/latest/paired-notebooks.html
+formats = "py:percent,ipynb"

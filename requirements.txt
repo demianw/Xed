@@ -1,0 +1,18 @@
+# Core course dependencies — pinned for reproducibility
+pandas==3.0.3
+scikit-learn==1.9.0
+matplotlib==3.11.0
+seaborn==0.13.2
+numpy
+pooch>=1.8          # dataset download + SHA-256 verification
+
+# Notebook tooling
+jupytext==1.19.4
+
+# Optional notebooks (install separately if you run those sessions)
+# datasets>=2.20           # text/text_classification_and_llms
+# sentence-transformers    # text/text_classification_and_llms
+# transformers             # text/text_classification_and_llms
+# torch                    # text/text_classification_and_llms
+# tabpfn                   # ames_datasets/notebook_ames_datasets_foundation_models
+# tabicl                   # ames_datasets/notebook_ames_datasets_foundation_models
