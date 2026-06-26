@@ -148,26 +148,58 @@ print(
 print("      This gap is the urban–rural divide in US politics.")
 
 # %% [markdown]
+# ### 1.2 Why this imbalance matters
+#
+# This 84% vs 16% split means always predicting Republican wins 84% of the
+# time — but this "model" would never identify a single Democrat county.
+# This is why accuracy alone is misleading for imbalanced data, and why we
+# use F1 and AUC instead. A classifier that scores 84% by always guessing the
+# majority class is politically useless: it cannot tell us *which* counties
+# lean Democratic, nor detect the small but populous set that drives the
+# popular-vote gap. Balanced accuracy, F1 on the minority class, and AUC-ROC
+# all penalise this trivial majority-predictor and reward models that
+# actually separate the two classes.
+
+# %% [markdown]
 # <div class="alert alert-success">
 #
-# <b>EXERCISE 1 — The urban–rural divide</b>
+# <b>EXERCISE 1a — Population-weighted class balance</b>
 # <ul>
 #   <li>
-#     <b>Population-weighted class balance.</b>
 #     The 84% Republican county figure is unweighted (each county counts equally).
 #     Compute the population-weighted Republican share:
 #     <code>(df.loc[y==1, 'total_population'].sum() / df['total_population'].sum())</code>.
 #     What fraction of the US population lives in Republican-won counties?
 #     Is it closer to 84% or 50%?
 #   </li>
+# </ul>
+# </div>
+
+# %%
+# Your code here
+
+# %% [markdown]
+# <div class="alert alert-success">
+#
+# <b>EXERCISE 1b — Demographic fingerprint by party</b>
+# <ul>
 #   <li>
-#     <b>Demographic fingerprint.</b>
 #     Compute the mean of each demographic feature separately for Republican
 #     and Democrat counties. Which features show the largest gap between the
 #     two groups?  Present as a sorted bar chart.
 #   </li>
+# </ul>
+# </div>
+
+# %%
+# Your code here
+
+# %% [markdown]
+# <div class="alert alert-success">
+#
+# <b>EXERCISE 1c — 2016 swing analysis</b>
+# <ul>
 #   <li>
-#     <b>2016 swing from 2012.</b>
 #     Create a column <code>flipped_R</code> = counties that voted Obama 2012
 #     but Trump 2016.  How many counties flipped?  What is their median
 #     <code>median_hh_inc</code>, <code>lesshs_pct</code>, and <code>rural_pct</code>
@@ -257,6 +289,14 @@ print(classification_report(y_test, y_pred_lr_bal, target_names=["Democrat (0)",
 # %% [markdown]
 # ---
 # ## 3. What drives the prediction? Feature importance
+#
+# **Gradient boosting** builds an ensemble of trees iteratively: each new tree
+# fits the residual errors of the previous ensemble. The `learning_rate`
+# controls how much each tree contributes (shrinkage) — smaller rates need
+# more trees but generalize better. `max_depth` limits each tree's complexity,
+# keeping individual learners weak so the ensemble improves gradually.
+# `HistGradientBoostingClassifier` is scikit-learn's fast histogram-based
+# implementation, well suited to large tabular datasets like this one.
 
 # %%
 # Fit the best model (HistGradientBoosting) on the full training set
@@ -342,6 +382,8 @@ plt.show()
 # The features are the same ACS demographics; only the election year changes.
 
 # %%
+from sklearn.metrics import balanced_accuracy_score
+
 # ── Build 2012 dataset ────────────────────────────────────────────────────────
 df_2012 = df.dropna(subset=DEMO_FEATURES).copy()
 df_2012 = df_2012[df_2012[["romney12", "obama12"]].notna().all(axis=1)]
@@ -368,11 +410,9 @@ print(f"AUC-ROC: {roc_auc_score(y_2016, lr_temporal.predict_proba(X_2016)[:, 1])
 
 # Compare: same-year CV (in-sample) vs temporal hold-out (out-of-sample)
 in_sample = cross_val_score(lr_temporal, X_2012, y_2012, cv=cv, scoring="balanced_accuracy").mean()
+temporal_balanced_acc = balanced_accuracy_score(y_2016, y_pred_2016)
 print(f"\nIn-sample CV balanced accuracy (2012→2012):    {in_sample:.3f}")
-print(
-    f"Temporal hold-out balanced accuracy (2012→2016): "
-    f"{__import__('sklearn.metrics', fromlist=['balanced_accuracy_score']).balanced_accuracy_score(y_2016, y_pred_2016):.3f}"
-)
+print(f"Temporal hold-out balanced accuracy (2012→2016): {temporal_balanced_acc:.3f}")
 
 # %% [markdown]
 # <div class="alert alert-success">
