@@ -786,6 +786,17 @@ pd.merge(df, locations, on="Embarked", how="left")
 # In this case we use `how='left'` (a "left join") because we wanted to keep the original rows of df and only add matching values from locations to it. Other options are 'inner', 'outer' and 'right' (see the docs for more on this).
 
 # %% [markdown]
+# ## 6. Feature engineering basics
+#
+# Feature engineering creates new columns from existing data. Common patterns:
+#
+# * **Binning continuous variables**: `df['age_group'] = pd.cut(df['age'], bins=[0, 18, 35, 60, 100], labels=['child', 'young', 'adult', 'senior'])` groups ages into meaningful categories.
+# * **Combining columns**: `df['family_size'] = df['sibsp'] + df['parch'] + 1` captures total family size from separate columns.
+# * **Ratios**: `df['fare_per_person'] = df['fare'] / df['family_size']` normalises fare by group size.
+#
+# Good features encode domain knowledge that models can't learn from raw data alone.
+
+# %% [markdown]
 # ## 8. Working with time series data
 
 # %% [markdown]
