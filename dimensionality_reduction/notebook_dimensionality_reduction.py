@@ -221,8 +221,8 @@ plt.show()
 
 # Scree plot
 fig, axes = plt.subplots(1, 2, figsize=(11, 4))
-n_show = 100
-axes[0].bar(range(1, n_show + 1), pca_vis.explained_variance_ratio_[:n_show] * 100)
+n_show = len(pca_vis.explained_variance_ratio_)
+axes[0].bar(range(1, n_show + 1), pca_vis.explained_variance_ratio_ * 100)
 axes[0].set_xlabel("Principal component")
 axes[0].set_ylabel("Explained variance (%)")
 axes[0].set_title("Scree plot (individual variance per PC)")
