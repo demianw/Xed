@@ -44,6 +44,12 @@ import matplotlib.pyplot as plt
 # ### Question 1
 #
 # Load the titanic using `pandas`. It is located in `datasets/titanic.csv`. Using the function `head()` and `info()`, which issues do you identify which need to be solved before to learn a machine learning model.
+#
+# To guide your exploration, consider:
+# * What columns have missing values?
+# * What data types are present?
+# * Which features are categorical vs numerical?
+# * Are there columns with mostly one value?
 
 # %% id="BUg-__bjwQ5l"
 from xed.datasets import load_titanic
@@ -76,6 +82,14 @@ data = load_titanic()
 
 # %% [markdown] id="Iu1g_ZPHwQ5m"
 # The titanic dataset is an heterogeneous dataset and it gives the opportunity to show the scikit-learn pipelining features. We will show in this notebook how to make a simple classification pipeline. The aim is to predict or not if a passenger survived the titanic trip.
+#
+# We split this section into three sub-sections:
+# * **Q1 — Data preprocessing**: column types, missing values, and encodings.
+# * **Q2 — Model training**: pipeline construction and hyperparameter optimization.
+# * **Q3 — Model comparison**: learning curves and evaluation metrics.
+
+# %% [markdown] id="Q1-data-preprocessing"
+# ### Q1. Data preprocessing
 
 # %% id="Vvo1xUy_wQ5m"
 data = load_titanic()
@@ -110,6 +124,8 @@ from sklearn.pipeline import make_pipeline
 # * and a standardization for the continuous features.
 #
 # In addition, missing values will be filled up with either the median (for continuous variable) or a constant value (categorical variable).
+#
+# **Why two different encoders?** Binary categorical variables (like `sex`: male/female) can use `OrdinalEncoder` (maps to 0/1) since there's no ordering issue. Multi-category variables (like `embarked`: S/C/Q) need `OneHotEncoder` to avoid implying a false ordering.
 
 # %% id="RjwOip6swQ5n"
 data.head()
@@ -117,6 +133,8 @@ data.head()
 # %% id="P-J87BgCwQ5n"
 
 # %% [markdown] id="XnjK1kAQwQ5n"
+# ### Q2. Model training
+#
 # A logistic regression classifier will be used in which the C parameter will be optimized. We will apply a 5-fold cross-validation scheme to estimate the accuracy of the model.
 
 # %% id="AA6lObswwQ5n"
@@ -132,7 +150,9 @@ data_train, data_test, label_train, label_test = train_test_split(
 )
 
 # %% [markdown] id="QhH8_fdXwQ5n"
-# ### Compare different classification algorithms to predict survival. Specifically through the learning curve and the prediction quality. You can compare
+# ### Q3. Model comparison
+#
+# Compare different classification algorithms to predict survival. Specifically through the learning curve and the prediction quality. You can compare
 # * Logistic Regression, with a parameter C
 # * LinearSVC
 # * RandomForestClassifiers
@@ -147,8 +167,7 @@ from sklearn.model_selection import GridSearchCV
 # # Section 3. Model validation and explanatory capabilities. For each model explore fitted model parameters and try to assess their explanatory capabilities
 #
 # Bear in mind that if `pipe` is our processing pipeline composed of a preprocessing step and a LinearSVC step:
-# * `linear_svc = pipe._final_estimator` extracts the tuple (*model name*, *model class*)
-# * `linear_svc` extracts regression class
+# * `linear_svc = pipe._final_estimator` (or equivalently `pipe[-1]`) returns the final estimator object directly
 # * `linear_svc.coef_` are the coefficients of the regressors
 
 # %% id="4dDXtDruwQ5n"
